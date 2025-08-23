@@ -173,9 +173,9 @@ const Account: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Balance Overview */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -187,7 +187,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -199,7 +199,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -211,7 +211,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -227,7 +227,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Transaction History */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
               Transaction History
@@ -268,23 +268,23 @@ const Account: React.FC = () => {
                       }
                       secondary={
                         transaction.metadata && (
-                          <Box sx={{ mt: 1 }}>
+                          <span style={{ marginTop: '8px', display: 'block' }}>
                             {transaction.type === 'subsidy' && (
-                              <Typography variant="caption" color="textSecondary">
+                              <span style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
                                 Program: {transaction.metadata.program}
                                 {transaction.metadata.region && ` | Region: ${transaction.metadata.region}`}
                                 {transaction.metadata.severity && ` | Drought Severity: ${transaction.metadata.severity}/5`}
-                              </Typography>
+                              </span>
                             )}
                             {transaction.type === 'trade' && (
-                              <Typography variant="caption" color="textSecondary">
+                              <span style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
                                 Contract: {transaction.metadata.contractCode} | 
                                 Qty: {transaction.metadata.quantity} | 
                                 Price: ${transaction.metadata.price}
                                 {transaction.metadata.confidence && ` | AI Confidence: ${(transaction.metadata.confidence * 100).toFixed(0)}%`}
-                              </Typography>
+                              </span>
                             )}
-                          </Box>
+                          </span>
                         )
                       }
                     />
@@ -297,7 +297,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Subsidy Programs Info */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -328,7 +328,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Automated Trading Status */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>

@@ -19,10 +19,13 @@ import httpx
 
 class FarmerAgent:
     def __init__(self):
-        # Initialize Claude
-        self.anthropic = Anthropic(
-            api_key=os.getenv("ANTHROPIC_API_KEY")
-        )
+        # Initialize Claude (only if API key exists)
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if api_key:
+            self.anthropic = Anthropic(api_key=api_key)
+        else:
+            self.anthropic = None
+            print("⚠️  Anthropic API key not found. Set ANTHROPIC_API_KEY environment variable.")
         
         # Available tools
         self.tools = {
@@ -374,7 +377,13 @@ Current market conditions:
         """Get weather data for farmer's location"""
         zip_code = params.get("zip_code", "93277")  # Default to Central Valley
         
-        # Simulate weather data (in production, call actual weather API)
+        # TODO: In production, use httpx to call actual weather API
+        # Example implementation:
+        # async with httpx.AsyncClient() as client:
+        #     response = await client.get(f"https://api.weather.gov/zones/{zip_code}")
+        #     weather_data = response.json()
+        
+        # For now, simulate weather data
         weather_data = {
             "zip_code": zip_code,
             "temperature": 24.5,
@@ -395,7 +404,7 @@ Current market conditions:
         return {
             "success": True,
             "weather": weather_data,
-            "source": "NOAA Weather Service"
+            "source": "NOAA Weather Service (simulated)"
         }
     
     async def _update_farmer_location(self, params: Dict[str, Any]) -> Dict[str, Any]:

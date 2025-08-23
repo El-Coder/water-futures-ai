@@ -3,6 +3,7 @@ fastapi==0.115.5
 uvicorn[standard]==0.34.0
 python-dotenv==1.0.1
 pydantic==2.10.4
+pydantic-settings==2.7.0
 
 # AI/ML
 anthropic==0.34.0

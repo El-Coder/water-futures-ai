@@ -15,12 +15,16 @@ class AlpacaMCPClient:
         self.api_key = os.getenv("ALPACA_API_KEY")
         self.api_secret = os.getenv("ALPACA_SECRET_KEY")
         
-        # Initialize Alpaca client for direct trading
-        self.trading_client = TradingClient(
-            api_key=self.api_key,
-            secret_key=self.api_secret,
-            paper=True  # Use paper trading for testing
-        )
+        # Initialize Alpaca client for direct trading (only if credentials exist)
+        if self.api_key and self.api_secret:
+            self.trading_client = TradingClient(
+                api_key=self.api_key,
+                secret_key=self.api_secret,
+                paper=True  # Use paper trading for testing
+            )
+        else:
+            self.trading_client = None
+            print("⚠️  Alpaca API credentials not found. Set ALPACA_API_KEY and ALPACA_SECRET_KEY environment variables.")
         
         # MCP server endpoint (if running)
         self.mcp_server_url = os.getenv("ALPACA_MCP_URL", "http://localhost:8765")
