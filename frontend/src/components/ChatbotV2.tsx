@@ -130,8 +130,8 @@ const ChatbotV2: React.FC = () => {
     try {
       // Determine which endpoint to use based on mode
       const endpoint = agentMode 
-        ? 'http://localhost:8000/api/v1/agent/execute'
-        : 'http://localhost:8000/api/v1/chat';
+        ? 'http://localhost:8001/api/v1/agent/execute'
+        : 'http://localhost:8001/api/v1/chat';
 
       const response = await axios.post(endpoint, {
         message: input,
@@ -192,7 +192,7 @@ const ChatbotV2: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/api/v1/agent/action', {
+      const response = await axios.post('http://localhost:8001/api/v1/agent/action', {
         action,
         context: {
           agentModeEnabled: true,
