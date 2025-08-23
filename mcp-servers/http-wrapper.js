@@ -153,32 +153,53 @@ app.get('/api/mcp/farmer/balance/:farmerId', async (req, res) => {
   try {
     const { farmerId } = req.params;
     
-    // Mock Crossmint subsidy balance (in production, would call Crossmint API)
-    const subsidyBalance = {
-      drought_relief: {
-        amount: 15000,
-        available: 12500,
-        used: 2500,
-        restrictions: 'Water purchases only',
-        transactions: [
-          {
-            id: 'TXN-001',
-            date: '2025-08-20',
-            amount: 2500,
-            purpose: 'Water rights purchase',
-            status: 'completed',
-            compliant: true
+    // Get REAL Crossmint wallet balance
+    let subsidyBalance;
+    try {
+      // Fetch Farmer Ted's Crossmint wallet balance (USDC on Ethereum Sepolia)
+      const crossmintResponse = await axios.get(
+        'https://staging.crossmint.com/api/2025-06-09/wallets/0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15',
+        {
+          headers: {
+            'x-api-key': process.env.CROSSMINT_API_KEY || ''
           }
-        ]
-      },
-      conservation_grant: {
-        amount: 5000,
-        available: 5000,
-        used: 0,
-        restrictions: 'Conservation equipment only',
-        transactions: []
-      }
-    };
+        }
+      );
+      
+      const usdcBalance = crossmintResponse.data.tokens?.find(
+        token => token.symbol === 'USDC'
+      )?.balance || 0;
+      
+      console.log('Real Crossmint USDC Balance:', usdcBalance);
+      
+      // Structure the real balance data
+      subsidyBalance = {
+        usdc_balance: {
+          amount: parseFloat(usdcBalance),
+          available: parseFloat(usdcBalance),
+          used: 0,
+          restrictions: 'Government subsidy - Water/equipment purchases only',
+          currency: 'USDC (Ethereum Sepolia)',
+          wallet_address: '0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15',
+          transactions: []
+        }
+      };
+    } catch (error) {
+      console.error('Crossmint API Error:', error.message);
+      // Fallback to show connection exists but balance unavailable
+      subsidyBalance = {
+        usdc_balance: {
+          amount: 0,
+          available: 0,
+          used: 0,
+          restrictions: 'Government subsidy - Water/equipment purchases only',
+          currency: 'USDC (Ethereum Sepolia)',
+          wallet_address: '0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15',
+          error: 'Unable to fetch current balance',
+          transactions: []
+        }
+      };
+    }
     
     // Get REAL Alpaca trading balance
     let tradingBalance;
@@ -222,19 +243,21 @@ app.get('/api/mcp/farmer/balance/:farmerId', async (req, res) => {
       },
       
       subsidyAccounts: {
-        source: 'Crossmint Digital Wallet',
-        totalSubsidies: 20000,
-        totalAvailable: 17500,
+        source: 'Crossmint Digital Wallet (Ethereum)',
+        totalSubsidies: subsidyBalance.usdc_balance.amount,
+        totalAvailable: subsidyBalance.usdc_balance.available,
         accounts: subsidyBalance,
         canUseForTrading: false,
-        message: '🔒 Subsidy funds are RESTRICTED and cannot be used for trading'
+        message: '🔒 USDC funds from Uncle Sam are RESTRICTED - Cannot be used for trading',
+        walletAddress: '0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15',
+        currency: 'USDC on Ethereum Sepolia'
       },
       
       totalBalance: {
-        allFunds: tradingBalance.cash + 17500,
+        allFunds: tradingBalance.cash + subsidyBalance.usdc_balance.amount,
         availableForTrading: tradingBalance.buying_power,
-        earmarkedForSpecificUse: 17500,
-        message: '📊 Your funds are properly separated between trading and subsidies'
+        earmarkedForSpecificUse: subsidyBalance.usdc_balance.amount,
+        message: '📊 Your funds are properly separated between Alpaca (trading) and Crossmint USDC (restricted)'
       },
       
       complianceStatus: {
