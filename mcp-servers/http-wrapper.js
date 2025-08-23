@@ -153,48 +153,61 @@ app.get('/api/mcp/farmer/balance/:farmerId', async (req, res) => {
   try {
     const { farmerId } = req.params;
     
-    // Get REAL Crossmint wallet balance
+    // Get REAL Crossmint wallet balance for Farmer Ted
     let subsidyBalance;
     try {
       // Fetch Farmer Ted's Crossmint wallet balance (USDC on Ethereum Sepolia)
       const crossmintResponse = await axios.get(
-        'https://staging.crossmint.com/api/2025-06-09/wallets/0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15',
+        'https://staging.crossmint.com/api/2025-06-09/wallets/userId:farmerted:evm/balances',
         {
+          params: {
+            tokens: 'usdc',
+            chains: 'ethereum-sepolia'
+          },
           headers: {
-            'x-api-key': process.env.CROSSMINT_API_KEY || ''
+            'X-API-KEY': process.env.CROSSMINT_API_KEY || ''
           }
         }
       );
       
-      const usdcBalance = crossmintResponse.data.tokens?.find(
-        token => token.symbol === 'USDC'
-      )?.balance || 0;
+      console.log('Crossmint Response:', JSON.stringify(crossmintResponse.data));
       
-      console.log('Real Crossmint USDC Balance:', usdcBalance);
+      // Extract USDC balance from response
+      const usdcData = crossmintResponse.data[0]; // First item in array
+      const actualBalance = parseFloat(usdcData?.amount || 0); // 'amount' is already formatted
+      const rawBalance = parseFloat(usdcData?.rawAmount || 0);
+      const decimals = usdcData?.decimals || 6; // USDC has 6 decimals
+      
+      console.log('Real Crossmint USDC Balance:', actualBalance, 'USDC');
       
       // Structure the real balance data
       subsidyBalance = {
         usdc_balance: {
-          amount: parseFloat(usdcBalance),
-          available: parseFloat(usdcBalance),
+          amount: actualBalance,
+          available: actualBalance,
           used: 0,
-          restrictions: 'Government subsidy - Water/equipment purchases only',
+          restrictions: 'Government subsidy from Uncle Sam - Water/equipment purchases only',
           currency: 'USDC (Ethereum Sepolia)',
-          wallet_address: '0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15',
+          wallet_address: usdcData?.walletAddress || 'farmerted.crossmint',
+          raw_balance: rawBalance,
+          decimals: decimals,
           transactions: []
         }
       };
     } catch (error) {
       console.error('Crossmint API Error:', error.message);
+      if (error.response) {
+        console.error('Response:', error.response.data);
+      }
       // Fallback to show connection exists but balance unavailable
       subsidyBalance = {
         usdc_balance: {
           amount: 0,
           available: 0,
           used: 0,
-          restrictions: 'Government subsidy - Water/equipment purchases only',
+          restrictions: 'Government subsidy from Uncle Sam - Water/equipment purchases only',
           currency: 'USDC (Ethereum Sepolia)',
-          wallet_address: '0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15',
+          wallet_address: 'userId:farmerted:evm',
           error: 'Unable to fetch current balance',
           transactions: []
         }

@@ -13,16 +13,25 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Allow pushing to repository
+      id-token: write  # Allow OIDC token creation
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
     
     - name: Authenticate to Google Cloud
+      id: auth
       uses: google-github-actions/auth@v2
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
         project_id: ${{ env.PROJECT_ID }}
+        create_credentials_file: true
+        export_environment_variables: true
     
     - name: Setup Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
@@ -113,7 +122,7 @@ jobs:
         echo "mcp_url=$MCP_URL" >> $GITHUB_OUTPUT
         echo "chat_url=$CHAT_URL" >> $GITHUB_OUTPUT
     
-    # Update Frontend Configuration
+    # Update Frontend Configuration and Commit
     - name: Update Frontend Configuration
       run: |
         cat > frontend/.env.production << EOF
@@ -141,6 +150,9 @@ jobs:
         VITE_FIREBASE_APP_ID=1:640022295144:web:3b7bb0826efb6ace0981dd
         VITE_FIREBASE_MEASUREMENT_ID=G-1PKETWJCV2
         EOF
+        
+        # Also create a .env file for runtime
+        cp frontend/.env.production frontend/.env
     
     # Build and Deploy Frontend
     - name: Setup Node.js
@@ -153,16 +165,29 @@ jobs:
         cd frontend
         npm ci
     
-    - name: Build Frontend
+    - name: Build Frontend with Production Config
       run: |
         cd frontend
-        npm run build
+        # Ensure production environment is used
+        NODE_ENV=production npm run build
     
     - name: Deploy to Firebase Hosting
       run: |
         cd frontend
         npm install -g firebase-tools
-        firebase deploy --only hosting --token "${{ secrets.FIREBASE_TOKEN }}" --project ${{ env.PROJECT_ID }}
+        # Use service account authentication
+        firebase deploy --only hosting --project ${{ env.PROJECT_ID }} --non-interactive
+    
+    # Commit Frontend Configuration Updates
+    - name: Commit Frontend Updates
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add frontend/.env.production frontend/.env || true
+        git diff --staged --quiet || (
+          git commit -m "Update frontend production configuration [skip ci]" && 
+          git push origin main
+        ) || echo "No changes to commit"
     
     # Output Service URLs
     - name: Output Deployment Info
