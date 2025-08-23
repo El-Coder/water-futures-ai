@@ -8,12 +8,18 @@ import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import Anthropic from '@anthropic-ai/sdk';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.CHAT_PORT || 8001;
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || '',
+});
 
 // Middleware
 app.use(cors());
@@ -39,48 +45,36 @@ app.post('/api/v1/chat', async (req, res) => {
     // Add user message to history
     history.push({ role: 'user', content: message, timestamp: new Date() });
     
-    // Analyze message intent
+    // Analyze message intent for context
     const intent = analyzeIntent(message);
     
-    // Generate response based on intent
-    let response;
+    // Prepare context for AI
+    let contextInfo = '';
     let suggestedActions = [];
     
+    // Fetch relevant data based on intent
     if (intent.type === 'market_query') {
-      // Get market data
       try {
         const marketData = await axios.get(`${BACKEND_URL}/api/v1/water-futures/current`);
-        response = `Current water futures prices:\n`;
+        contextInfo = `Current water futures market data:\n`;
         marketData.data.slice(0, 3).forEach(contract => {
-          response += `• ${contract.contract_code}: $${contract.price}/AF\n`;
+          contextInfo += `• ${contract.contract_code}: $${contract.price}/AF\n`;
         });
-        response += "\nWould you like to analyze market trends or place a trade?";
         suggestedActions = [
           { action: "Analyze market trends", type: "info" },
           { action: "View my portfolio", type: "info" }
         ];
       } catch (error) {
-        response = "I can help you with water futures trading. Current NQH25 contract is trading around $508/AF. Market conditions are being influenced by ongoing drought conditions.";
+        contextInfo = "Current water futures market: NQH25 contract trading around $508/AF.";
       }
     } else if (intent.type === 'subsidy_query') {
-      response = `Government subsidies available for farmers:\n`;
-      response += `• Federal Drought Relief: Up to $15,000 for qualifying farms\n`;
-      response += `• Water Conservation Grant: Up to $10,000 for irrigation upgrades\n`;
-      response += `• Emergency Crop Loss Program: Variable based on losses\n\n`;
-      response += `To apply, you'll need proof of farm ownership and drought impact assessment. Enable Agent Mode to process applications.`;
+      contextInfo = `Available government subsidies:\n`;
+      contextInfo += `• Federal Drought Relief: Up to $15,000\n`;
+      contextInfo += `• Water Conservation Grant: Up to $10,000\n`;
+      contextInfo += `• Emergency Crop Loss Program: Variable based on losses`;
       suggestedActions = [
         { action: "Check my eligibility", type: "info" },
         { action: "Start application", type: "subsidy" }
-      ];
-    } else if (intent.type === 'trade_request') {
-      response = `To execute trades, you need to enable Agent Mode. In Agent Mode, I can:\n`;
-      response += `• Execute water futures trades through Alpaca\n`;
-      response += `• Process government subsidies via Crossmint\n`;
-      response += `• Manage your portfolio automatically\n\n`;
-      response += `Currently in SAFE mode - I can only provide information and analysis.`;
-      suggestedActions = [
-        { action: "View current prices", type: "info" },
-        { action: "Analyze market", type: "info" }
       ];
     } else if (intent.type === 'forecast_request') {
       try {
@@ -89,31 +83,77 @@ app.post('/api/v1/chat', async (req, res) => {
           horizon_days: 7
         });
         const forecast = forecastData.data;
-        response = `Water futures price forecast for NQH25:\n`;
-        response += `• Current: $${forecast.current_price}/AF\n`;
-        response += `• 7-day prediction: $${forecast.predicted_prices[0].price}/AF\n`;
-        response += `• Confidence: ${(forecast.model_confidence * 100).toFixed(1)}%\n`;
-        response += `• Trend: ${forecast.predicted_prices[0].price > forecast.current_price ? '📈 Upward' : '📉 Downward'}`;
+        contextInfo = `Water futures forecast for NQH25:\n`;
+        contextInfo += `• Current: $${forecast.current_price}/AF\n`;
+        contextInfo += `• 7-day prediction: $${forecast.predicted_prices[0].price}/AF\n`;
+        contextInfo += `• Confidence: ${(forecast.model_confidence * 100).toFixed(1)}%`;
       } catch (error) {
-        response = "Based on current drought conditions and market analysis, water futures prices are expected to trend upward over the next 7 days. Severe drought in Central Valley is driving demand.";
+        contextInfo = "Market forecast data: Prices expected to trend upward due to drought conditions.";
       }
       suggestedActions = [
         { action: "View detailed analysis", type: "info" },
         { action: "Set price alert", type: "info" }
       ];
-    } else {
-      // General response
-      response = `I'm your Water Futures Assistant. I can help you with:\n`;
-      response += `• Water futures trading and market analysis\n`;
-      response += `• Government subsidy applications\n`;
-      response += `• Drought impact assessments\n`;
-      response += `• Portfolio management\n\n`;
-      response += `What would you like to know about?`;
-      suggestedActions = [
-        { action: "Check water prices", type: "info" },
-        { action: "View subsidies", type: "info" },
-        { action: "Market forecast", type: "info" }
-      ];
+    }
+    
+    // Use Anthropic AI to generate response
+    let response;
+    try {
+      // Check if API key is configured
+      if (!process.env.ANTHROPIC_API_KEY) {
+        throw new Error('Anthropic API key not configured');
+      }
+      
+      // Prepare messages for Claude
+      const messages = [];
+      
+      // Add conversation history (last 5 exchanges)
+      const recentHistory = history.slice(-10).filter(h => h.role !== 'user' || h.content !== message);
+      recentHistory.forEach(h => {
+        if (h.role && h.content) {
+          messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content });
+        }
+      });
+      
+      // Add current message with context
+      const systemPrompt = `You are a helpful Water Futures AI assistant specializing in water futures trading, drought management, and government subsidies for farmers. 
+      ${contextInfo ? `Context: ${contextInfo}` : ''}
+      Help the user with their query in a conversational and informative way. Keep responses concise and relevant.`;
+      
+      const aiResponse = await anthropic.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 500,
+        temperature: 0.7,
+        system: systemPrompt,
+        messages: [...messages, { role: 'user', content: message }]
+      });
+      
+      response = aiResponse.content[0].text;
+      
+    } catch (aiError) {
+      console.error('AI Error:', aiError.message);
+      
+      // Fallback to pattern-based responses if AI fails
+      if (intent.type === 'market_query') {
+        response = contextInfo + "\n\nWould you like to analyze market trends or view your portfolio?";
+      } else if (intent.type === 'subsidy_query') {
+        response = contextInfo + "\n\nTo apply, you'll need proof of farm ownership and drought impact assessment.";
+      } else if (intent.type === 'trade_request') {
+        response = "To execute trades, enable Agent Mode. I can help with market analysis and information in the meantime.";
+      } else if (intent.type === 'forecast_request') {
+        response = contextInfo || "Market conditions suggest prices will trend based on drought severity and demand.";
+      } else {
+        response = "I'm your Water Futures Assistant. I can help with water futures trading, subsidies, and drought management. What would you like to know?";
+      }
+      
+      // Set default suggested actions if not already set
+      if (!suggestedActions.length) {
+        suggestedActions = [
+          { action: "Check water prices", type: "info" },
+          { action: "View subsidies", type: "info" },
+          { action: "Market forecast", type: "info" }
+        ];
+      }
     }
     
     // Add assistant response to history

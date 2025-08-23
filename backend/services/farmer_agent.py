@@ -26,7 +26,11 @@ class FarmerAgent:
         # Initialize Claude (only if API key exists)
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if api_key:
-            self.anthropic = Anthropic(api_key=api_key)
+            try:
+                self.anthropic = Anthropic(api_key=api_key)
+            except Exception as e:
+                print(f"⚠️  Error initializing Anthropic client: {e}")
+                self.anthropic = None
         else:
             self.anthropic = None
             print("⚠️  Anthropic API key not found. Set ANTHROPIC_API_KEY environment variable.")
