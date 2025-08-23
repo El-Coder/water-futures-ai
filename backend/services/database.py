@@ -1,6 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+import os
+
+# Load environment variables first
+load_dotenv()
+
 from config.settings import settings
 from models.base import Base
 import asyncio
