@@ -149,10 +149,14 @@ jobs:
     - name: Get Service URLs
       id: service-urls
       run: |
-        MCP_URL=$(gcloud run services describe water-futures-mcp --region ${{ env.REGION }} --format 'value(status.url)')
-        CHAT_URL=$(gcloud run services describe water-futures-chat --region ${{ env.REGION }} --format 'value(status.url)')
+        # Wait for services to be ready
+        sleep 30
+        MCP_URL=$(gcloud run services describe water-futures-mcp --region ${{ env.REGION }} --format 'value(status.url)' || echo "")
+        CHAT_URL=$(gcloud run services describe water-futures-chat --region ${{ env.REGION }} --format 'value(status.url)' || echo "")
         echo "mcp_url=$MCP_URL" >> $GITHUB_OUTPUT
         echo "chat_url=$CHAT_URL" >> $GITHUB_OUTPUT
+        echo "MCP URL: $MCP_URL"
+        echo "Chat URL: $CHAT_URL"
     
     # Update Frontend Configuration and Commit
     - name: Update Frontend Configuration
@@ -218,11 +222,13 @@ jobs:
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
-        git add frontend/.env.production frontend/.env || true
-        git diff --staged --quiet || (
-          git commit -m "Update frontend production configuration [skip ci]" && 
-          git push origin main
-        ) || echo "No changes to commit"
+        git add frontend/.env.production frontend/.env 2>/dev/null || true
+        if ! git diff --staged --quiet; then
+          git commit -m "Update frontend production configuration [skip ci]" || echo "Commit failed"
+          git push origin main || echo "Push failed - continuing deployment"
+        else
+          echo "No changes to commit"
+        fi
     
     # Output Service URLs
     - name: Output Deployment Info

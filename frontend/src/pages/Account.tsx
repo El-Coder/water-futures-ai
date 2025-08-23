@@ -50,6 +50,7 @@ interface Transaction {
 
 const Account: React.FC = () => {
   const [balance, setBalance] = useState(0);
+  const [ethBalance, setEthBalance] = useState<number>(0);
   const [positions, setPositions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [droughtLevel, setDroughtLevel] = useState<'low' | 'medium' | 'high'>('low');
@@ -166,12 +167,19 @@ const Account: React.FC = () => {
 
   const fetchAccountData = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/trading/account`);
-      setBalance(response.data.cash || response.data.portfolio_value || 0);
+      // Fetch from MCP endpoint which has all the data including ETH
+      const response = await axios.get(`${API_CONFIG.MCP_URL}/api/mcp/farmer/balance/farmer-ted`);
+      setBalance(response.data.tradingAccount?.cash || 0);
+      setEthBalance(response.data.ethBalance?.sepolia || 0);
     } catch (error) {
       console.error('Error fetching account data:', error);
-      // Fallback to default
-      setBalance(125000);
+      // Try Alpaca endpoint as fallback
+      try {
+        const alpacaResponse = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/trading/account`);
+        setBalance(alpacaResponse.data.cash || alpacaResponse.data.portfolio_value || 0);
+      } catch {
+        setBalance(0);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -424,10 +432,10 @@ const Account: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
-                    Active Positions
+                    ETH Balance (Sepolia)
                   </Typography>
                   <Typography variant="h5">
-                    20 Contracts
+                    {ethBalance} ETH
                   </Typography>
                 </CardContent>
               </Card>

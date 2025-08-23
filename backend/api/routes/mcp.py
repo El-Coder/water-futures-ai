@@ -7,6 +7,7 @@ from services.crossmint_service import crossmint_service
 from services.farmer_agent import farmer_agent
 from services.alpaca_service import AlpacaService
 import httpx
+import os
 
 router = APIRouter()
 alpaca_service = AlpacaService()
@@ -27,23 +28,23 @@ async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
         if not wallet_address:
             raise HTTPException(status_code=404, detail=f"Farmer {farmer_id} not found")
         
-        # Get balance from Crossmint service
-        balance_data = await crossmint_service.get_wallet_balance(wallet_address)
+        # Get REAL Alpaca account balance
+        alpaca_account = await alpaca_service.get_account()
         
-        # Return farmer-specific balance data in the format expected by frontend
-        farmer_balance = balance_data.get("balance", 0)
+        # Get balance from Crossmint service for subsidies
+        balance_data = await crossmint_service.get_wallet_balance(wallet_address)
         available_subsidies = await _get_available_subsidies(farmer_id)
         
-        # Get ETH Sepolia balance (simulated for now)
-        eth_balance = 0.5 if farmer_id == "farmer-ted" else 0.1
+        # Get REAL ETH Sepolia balance from blockchain
+        eth_balance = await _get_eth_balance(wallet_address)
         
         return {
             "tradingAccount": {
-                "cash": farmer_balance,
-                "portfolio_value": farmer_balance,
-                "buying_power": farmer_balance,
-                "unrealized_pnl": 0,
-                "realized_pnl": 0,
+                "cash": alpaca_account.get("cash", 0),
+                "portfolio_value": alpaca_account.get("portfolio_value", 0),
+                "buying_power": alpaca_account.get("buying_power", 0),
+                "unrealized_pnl": alpaca_account.get("daily_pnl", 0),
+                "realized_pnl": alpaca_account.get("total_pnl", 0),
                 "canUseForTrading": True,
                 "message": "Trading account active"
             },
@@ -72,8 +73,8 @@ async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
                 "network": "Sepolia Testnet"
             },
             "totalBalance": {
-                "allFunds": farmer_balance + available_subsidies,
-                "availableForTrading": farmer_balance,
+                "allFunds": alpaca_account.get("portfolio_value", 0) + available_subsidies,
+                "availableForTrading": alpaca_account.get("buying_power", 0),
                 "earmarkedForSpecificUse": available_subsidies
             },
             "complianceStatus": {
@@ -155,3 +156,31 @@ async def _get_available_subsidies(farmer_id: str) -> int:
         return eligibility.get("total_available", 0)
     except:
         return 0
+
+async def _get_eth_balance(wallet_address: str) -> float:
+    """Get ETH balance from Sepolia testnet via Crossmint"""
+    try:
+        # Determine user ID from wallet address
+        user_id = "farmerted" if "farmerted" in wallet_address else "farmeralice"
+        
+        # Call Crossmint API to get real balance
+        url = f"https://staging.crossmint.com/api/2025-06-09/wallets/userId:{user_id}:evm/balances"
+        headers = {"X-API-KEY": os.getenv("CROSSMINT_API_KEY")}
+        params = {"tokens": "native", "chains": "ethereum-sepolia"}
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, params=params, headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                # Extract ETH balance from response
+                for balance in data.get("balances", []):
+                    if balance.get("token") == "native" and balance.get("chain") == "ethereum-sepolia":
+                        return float(balance.get("amount", 0))
+                return 0.0
+            else:
+                print(f"Crossmint API error: {response.status_code}")
+                return 0.0
+    except Exception as e:
+        print(f"Error fetching ETH balance: {e}")
+        return 0.0
