@@ -34,11 +34,11 @@ const Demo: React.FC = () => {
   const getSubsidyAmount = (level: 'low' | 'medium' | 'high') => {
     switch (level) {
       case 'low':
-        return '0';
+        return '5000';
       case 'medium':
-        return '0.25';
+        return '15000';
       case 'high':
-        return '0.5';
+        return '25000';
       default:
         return '0';
     }
