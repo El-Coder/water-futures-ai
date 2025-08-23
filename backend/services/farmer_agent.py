@@ -9,6 +9,10 @@ Farmer Agent - Main AI agent with access to all tools:
 from typing import Dict, Any, List, Optional
 import os
 from anthropic import Anthropic
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 from services.alpaca_mcp_client import alpaca_client
 from services.vertex_ai_service import vertex_ai_service
 from models.farmer import Farmer, FarmerContext, WeatherData, FarmLocation
