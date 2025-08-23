@@ -221,7 +221,6 @@ jobs:
         npm install -g firebase-tools
     
     - name: Deploy to Firebase Hosting
-      working-directory: ./frontend
       run: |
         # Use GCP service account authentication
         export GOOGLE_APPLICATION_CREDENTIALS="${{ steps.auth.outputs.credentials_file_path }}"
@@ -229,13 +228,13 @@ jobs:
         echo "Current directory: $(pwd)"
         echo "Checking for Firebase files..."
         ls -la firebase.json .firebaserc
-        # Verify dist directory exists
-        echo "Checking dist directory..."
-        if [ ! -d "dist" ]; then
-          echo "ERROR: dist directory not found!"
+        # Verify frontend dist directory exists
+        echo "Checking frontend/dist directory..."
+        if [ ! -d "frontend/dist" ]; then
+          echo "ERROR: frontend/dist directory not found!"
           exit 1
         fi
-        ls -la dist/
+        ls -la frontend/dist/
         # Deploy using the project flag to avoid needing firebase use
         firebase deploy --only hosting --project ${{ env.PROJECT_ID }} --non-interactive --debug
     
