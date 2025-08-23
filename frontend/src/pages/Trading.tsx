@@ -209,7 +209,7 @@ const Trading: React.FC = () => {
       
       {/* Fund Balance Overview */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 3 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ bgcolor: '#e8f5e9' }}>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -219,20 +219,23 @@ const Trading: React.FC = () => {
                 <CheckCircle color="success" />
               </Box>
               <Typography variant="h5">
-                ${balance?.tradingAccount.cash.toLocaleString() || '0'}
+                ${balance?.tradingAccount.portfolio_value.toLocaleString() || '0'}
               </Typography>
-              <Typography variant="body2" color="success.main">
-                ✅ Available for trading
+              <Typography variant="body2" color="textSecondary">
+                Portfolio Value
               </Typography>
               <Divider sx={{ my: 1 }} />
-              <Typography variant="caption">
+              <Typography variant="body2">
+                Cash: ${balance?.tradingAccount.cash.toLocaleString() || '0'}
+              </Typography>
+              <Typography variant="body2" color="success.main">
                 Buying Power: ${balance?.tradingAccount.buying_power.toLocaleString() || '0'}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ bgcolor: '#fff3e0' }}>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -255,29 +258,6 @@ const Trading: React.FC = () => {
           </Card>
         </Grid>
         
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Typography color="textSecondary" gutterBottom>
-                  Total Balance
-                </Typography>
-                <AccountBalance color="primary" />
-              </Box>
-              <Typography variant="h5">
-                ${balance?.totalBalance.allFunds.toLocaleString() || '0'}
-              </Typography>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="caption" color="success.main">
-                Trading: ${balance?.totalBalance.availableForTrading.toLocaleString() || '0'}
-              </Typography>
-              <br />
-              <Typography variant="caption" color="warning.main">
-                Earmarked: ${balance?.totalBalance.earmarkedForSpecificUse.toLocaleString() || '0'}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
 
       {/* Compliance Status Alert */}
