@@ -27,20 +27,27 @@ jobs:
     - name: Setup Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
     
+    - name: Create Artifact Registry Repository
+      run: |
+        gcloud artifacts repositories create water-futures \
+          --repository-format=docker \
+          --location=${{ env.REGION }} \
+          --description="Water Futures AI Docker images" || true
+    
     - name: Configure Docker
       run: |
-        gcloud auth configure-docker gcr.io
+        gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
     
     # Deploy Backend Service
     - name: Build and Push Backend
       run: |
-        docker build -t gcr.io/${{ env.PROJECT_ID }}/water-futures-backend ./backend
-        docker push gcr.io/${{ env.PROJECT_ID }}/water-futures-backend
+        docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/backend:latest ./backend
+        docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/backend:latest
     
     - name: Deploy Backend to Cloud Run
       run: |
         gcloud run deploy water-futures-backend \
-          --image gcr.io/${{ env.PROJECT_ID }}/water-futures-backend \
+          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/backend:latest \
           --region ${{ env.REGION }} \
           --platform managed \
           --allow-unauthenticated \
@@ -54,8 +61,8 @@ jobs:
     # Deploy MCP HTTP Wrapper Service
     - name: Build and Push MCP HTTP Wrapper
       run: |
-        docker build -t gcr.io/${{ env.PROJECT_ID }}/water-futures-mcp -f ./mcp-servers/Dockerfile ./mcp-servers
-        docker push gcr.io/${{ env.PROJECT_ID }}/water-futures-mcp
+        docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/mcp:latest -f ./mcp-servers/Dockerfile ./mcp-servers
+        docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/mcp:latest
     
     - name: Get Backend URL
       id: backend-url
@@ -66,7 +73,7 @@ jobs:
     - name: Deploy MCP HTTP Wrapper to Cloud Run
       run: |
         gcloud run deploy water-futures-mcp \
-          --image gcr.io/${{ env.PROJECT_ID }}/water-futures-mcp \
+          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/mcp:latest \
           --region ${{ env.REGION }} \
           --platform managed \
           --allow-unauthenticated \
@@ -80,13 +87,13 @@ jobs:
     # Deploy Chat Service
     - name: Build and Push Chat Service
       run: |
-        docker build -t gcr.io/${{ env.PROJECT_ID }}/water-futures-chat -f ./mcp-servers/Dockerfile.chat ./mcp-servers
-        docker push gcr.io/${{ env.PROJECT_ID }}/water-futures-chat
+        docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/chat:latest -f ./mcp-servers/Dockerfile.chat ./mcp-servers
+        docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/chat:latest
     
     - name: Deploy Chat Service to Cloud Run
       run: |
         gcloud run deploy water-futures-chat \
-          --image gcr.io/${{ env.PROJECT_ID }}/water-futures-chat \
+          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/chat:latest \
           --region ${{ env.REGION }} \
           --platform managed \
           --allow-unauthenticated \
