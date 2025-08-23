@@ -13,6 +13,10 @@ class ForecastService:
     def __init__(self):
         self.vertex_ai = vertex_ai_service
         self.data_store = data_store
+    
+    async def predict(self, contract_code: str, horizon_days: int = 7) -> Dict[str, Any]:
+        """Alias for generate_forecast for compatibility"""
+        return await self.generate_forecast(contract_code, horizon_days)
         
     async def generate_forecast(
         self, 

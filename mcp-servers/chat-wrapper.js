@@ -25,8 +25,141 @@ const anthropic = new Anthropic({
 app.use(cors());
 app.use(express.json());
 
+/**
+ * Update drought context endpoint (for demo)
+ */
+app.post('/api/v1/context/drought', (req, res) => {
+  const { droughtLevel, subsidyAmount, farmerId } = req.body;
+  
+  const context = {
+    droughtLevel,
+    subsidyAmount,
+    updatedAt: new Date().toISOString()
+  };
+  
+  droughtContext.set(farmerId || 'farmer-ted', context);
+  console.log(`🌾 Drought context updated: Level=${droughtLevel}, Subsidy=${subsidyAmount} USDC`);
+  
+  res.json({ success: true, message: 'Drought context updated' });
+});
+
+/**
+ * Trigger agent notification about drought (stores message for next chat)
+ */
+app.post('/api/v1/agent/notify-drought', (req, res) => {
+  const { droughtLevel, subsidyAmount, farmerId } = req.body;
+  
+  let agentMessage = '';
+  
+  if (droughtLevel === 'low') {
+    agentMessage = `Hello Farmer Ted! I've received your drought index update.\n\n` +
+      `Current Status: LOW drought conditions\n` +
+      `Subsidy Eligibility: Unfortunately, you're NOT eligible for government subsidies at this time.\n\n` +
+      `The good news is your farm is experiencing normal conditions. Keep monitoring!`;
+  } else if (droughtLevel === 'medium') {
+    agentMessage = `Hello Farmer Ted! I've received your drought index update.\n\n` +
+      `Current Status: MEDIUM drought conditions\n` +
+      `Subsidy Eligibility: You ARE eligible for drought relief!\n` +
+      `Amount Available: 0.25 USDC\n\n` +
+      `Would you like me to process this transfer for you? Just reply "yes" to confirm.`;
+  } else if (droughtLevel === 'high') {
+    agentMessage = `🚨 URGENT: Hello Farmer Ted!\n\n` +
+      `Current Status: HIGH/SEVERE drought conditions\n` +
+      `Subsidy Eligibility: You ARE eligible for EMERGENCY drought relief!\n` +
+      `Amount Available: 0.5 USDC\n\n` +
+      `Would you like me to process this emergency transfer immediately? Reply "yes" to confirm.`;
+  }
+  
+  // Store the pending message
+  pendingAgentMessages.set(farmerId || 'farmer-ted', agentMessage);
+  
+  res.json({ success: true, message: 'Agent will notify user', agentMessage });
+});
+
+/**
+ * Execute drought transfer endpoint
+ */
+app.post('/api/v1/drought/execute-transfer', async (req, res) => {
+  const { droughtLevel, amount, farmerId } = req.body;
+  
+  try {
+    // Import required modules
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const fs = await import('fs').then(m => m.promises);
+    const execAsync = promisify(exec);
+    
+    console.log(`💰 Executing transfer: ${amount} USDC to ${farmerId}`);
+    
+    // Create Python script for transfer
+    const pythonScript = `
+import os
+import requests
+from dotenv import load_dotenv
+import json
+
+# Load environment variables
+load_dotenv()
+
+url = "https://staging.crossmint.com/api/2025-06-09/wallets/userId:unclesam:evm/tokens/ethereum-sepolia:usdc/transfers"
+
+payload = {
+    "recipient": "0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15",  # Farmer Ted
+    "amount": "${amount}"
+}
+
+headers = {
+    "x-api-key": os.getenv("CROSSMINT_API_KEY"),
+    "Content-Type": "application/json"
+}
+
+try:
+    response = requests.post(url, json=payload, headers=headers)
+    if response.status_code == 200:
+        print(json.dumps({"success": True, "data": response.json()}))
+    else:
+        print(json.dumps({"success": False, "error": response.json()}))
+except Exception as e:
+    print(json.dumps({"success": False, "error": str(e)}))
+`;
+    
+    // Write and execute
+    const tmpFile = '/tmp/drought_transfer.py';
+    await fs.writeFile(tmpFile, pythonScript);
+    
+    const { stdout } = await execAsync(
+      `cd /Users/defymacbook1/Desktop/HACKATHON/water-futures-ai/backend && source venv/bin/activate && python ${tmpFile}`
+    );
+    
+    const result = JSON.parse(stdout);
+    
+    if (result.success) {
+      res.json({ 
+        success: true, 
+        message: `Transfer of ${amount} USDC completed`,
+        data: result.data 
+      });
+    } else {
+      res.json({ success: false, error: result.error });
+    }
+    
+    // Cleanup
+    await fs.unlink(tmpFile).catch(() => {});
+    
+  } catch (error) {
+    console.error('Transfer error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
+
 // Store for conversation context
 const conversationStore = new Map();
+
+// Store for drought context (for demo)
+const droughtContext = new Map();
+
+// Store for pending agent messages
+const pendingAgentMessages = new Map();
 
 /**
  * Main chat endpoint - Safe mode
@@ -34,13 +167,78 @@ const conversationStore = new Map();
 app.post('/api/v1/chat', async (req, res) => {
   try {
     const { message, context = {} } = req.body;
-    const userId = context.userId || 'default';
+    const userId = context.userId || 'farmer-ted';  // Default to farmer-ted for demo
     
     // Get or create conversation history
     if (!conversationStore.has(userId)) {
       conversationStore.set(userId, []);
     }
     const history = conversationStore.get(userId);
+    
+    // Check for pending agent message first
+    const pendingMessage = pendingAgentMessages.get(userId);
+    if (pendingMessage) {
+      // Send the pending agent message
+      pendingAgentMessages.delete(userId);
+      history.push({ role: 'assistant', content: pendingMessage, timestamp: new Date() });
+      
+      // Also add the user's current message
+      history.push({ role: 'user', content: message, timestamp: new Date() });
+      
+      // If user said yes to a transfer, execute it
+      if (message.toLowerCase().includes('yes')) {
+        const userDrought = droughtContext.get(userId);
+        if (userDrought && userDrought.subsidyAmount !== '0') {
+          // Execute the transfer
+          try {
+            const { exec } = await import('child_process');
+            const { promisify } = await import('util');
+            const execAsync = promisify(exec);
+            
+            const pythonScript = `
+import os
+import requests
+from dotenv import load_dotenv
+import json
+load_dotenv()
+url = "https://staging.crossmint.com/api/2025-06-09/wallets/userId:unclesam:evm/tokens/ethereum-sepolia:usdc/transfers"
+payload = {"recipient": "0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15", "amount": "${userDrought.subsidyAmount}"}
+headers = {"x-api-key": os.getenv("CROSSMINT_API_KEY"), "Content-Type": "application/json"}
+response = requests.post(url, json=payload, headers=headers)
+if response.status_code == 200:
+    print(json.dumps({"success": True}))
+else:
+    print(json.dumps({"success": False}))
+`;
+            
+            const fs = await import('fs').then(m => m.promises);
+            await fs.writeFile('/tmp/quick_transfer.py', pythonScript);
+            const { stdout } = await execAsync(
+              `cd /Users/defymacbook1/Desktop/HACKATHON/water-futures-ai/backend && source venv/bin/activate && python /tmp/quick_transfer.py`
+            );
+            const result = JSON.parse(stdout);
+            
+            if (result.success) {
+              const response = `✅ Transfer completed! ${userDrought.subsidyAmount} USDC has been sent from Uncle Sam to your wallet. The funds should appear in your account shortly.`;
+              history.push({ role: 'assistant', content: response, timestamp: new Date() });
+              res.json({ response, suggestedActions: [], isAgentAction: false, mode: 'chat' });
+              return;
+            }
+          } catch (err) {
+            console.error('Transfer execution error:', err);
+          }
+        }
+      }
+      
+      // Send the pending message as response
+      res.json({
+        response: pendingMessage + "\n\n" + "How can I help you today?",
+        suggestedActions: [],
+        isAgentAction: false,
+        mode: 'chat'
+      });
+      return;
+    }
     
     // Add user message to history
     history.push({ role: 'user', content: message, timestamp: new Date() });

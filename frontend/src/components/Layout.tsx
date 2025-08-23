@@ -21,6 +21,7 @@ import {
   Grass as GrassIcon,
   Agriculture as AgricultureIcon,
   Opacity as OpacityIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ChatbotV2 from './ChatbotV2';

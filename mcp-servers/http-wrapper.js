@@ -147,6 +147,90 @@ app.post('/api/mcp/trading/confirm-trade', async (req, res) => {
 });
 
 /**
+ * Get comprehensive balance information with fund separation
+ */
+app.get('/api/mcp/farmer/balance/:farmerId', async (req, res) => {
+  try {
+    const { farmerId } = req.params;
+    
+    // Mock Crossmint subsidy balance (in production, would call Crossmint API)
+    const subsidyBalance = {
+      drought_relief: {
+        amount: 15000,
+        available: 12500,
+        used: 2500,
+        restrictions: 'Water purchases only',
+        transactions: [
+          {
+            id: 'TXN-001',
+            date: '2025-08-20',
+            amount: 2500,
+            purpose: 'Water rights purchase',
+            status: 'completed',
+            compliant: true
+          }
+        ]
+      },
+      conservation_grant: {
+        amount: 5000,
+        available: 5000,
+        used: 0,
+        restrictions: 'Conservation equipment only',
+        transactions: []
+      }
+    };
+    
+    // Mock Alpaca trading balance
+    const tradingBalance = {
+      cash: 95000,
+      portfolio_value: 125000,
+      buying_power: 95000,
+      unrealized_pnl: 1250,
+      realized_pnl: 3500
+    };
+    
+    // Combined balance view
+    res.json({
+      farmerId,
+      
+      // Clearly separated balances
+      tradingAccount: {
+        source: 'Alpaca Paper Trading',
+        ...tradingBalance,
+        canUseForTrading: true,
+        message: '✅ These funds can be used for water futures trading'
+      },
+      
+      subsidyAccounts: {
+        source: 'Crossmint Digital Wallet',
+        totalSubsidies: 20000,
+        totalAvailable: 17500,
+        accounts: subsidyBalance,
+        canUseForTrading: false,
+        message: '🔒 Subsidy funds are RESTRICTED and cannot be used for trading'
+      },
+      
+      totalBalance: {
+        allFunds: tradingBalance.cash + 17500,
+        availableForTrading: tradingBalance.buying_power,
+        earmarkedForSpecificUse: 17500,
+        message: '📊 Your funds are properly separated between trading and subsidies'
+      },
+      
+      complianceStatus: {
+        isCompliant: true,
+        nextReportingDate: '2025-12-31',
+        warnings: []
+      }
+    });
+    
+  } catch (error) {
+    console.error('Balance error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * Get portfolio status
  */
 app.get('/api/mcp/trading/portfolio', async (req, res) => {
@@ -296,13 +380,34 @@ app.post('/api/mcp/trading/analyze-market', async (req, res) => {
 // ============================
 
 /**
- * Process government subsidy
+ * Process government subsidy with fund earmarking
  */
 app.post('/api/mcp/farmer/process-subsidy', async (req, res) => {
   try {
     const { farmerId, subsidyType, amount, metadata } = req.body;
     
-    // Simulate Crossmint payment processing
+    // Define fund restrictions based on subsidy type
+    const fundRestrictions = {
+      drought_relief: {
+        restrictions: ['NO_TRADING', 'WATER_PURCHASE_ONLY'],
+        message: '⚠️ These funds are EARMARKED for water purchases only and CANNOT be used for futures trading',
+        allowedUses: ['Water rights purchases', 'Irrigation infrastructure', 'Water conservation equipment']
+      },
+      conservation_rebate: {
+        restrictions: ['NO_TRADING', 'CONSERVATION_ONLY'],
+        message: '⚠️ These funds are RESTRICTED to conservation projects and CANNOT be used for trading',
+        allowedUses: ['Drip irrigation systems', 'Soil moisture sensors', 'Water-efficient equipment']
+      },
+      crop_insurance: {
+        restrictions: ['NO_TRADING', 'EMERGENCY_ONLY'],
+        message: '⚠️ These insurance funds are for EMERGENCY use only and CANNOT be used for speculation',
+        allowedUses: ['Crop loss recovery', 'Emergency water purchases', 'Replanting costs']
+      }
+    };
+    
+    const restriction = fundRestrictions[subsidyType] || fundRestrictions.drought_relief;
+    
+    // Simulate Crossmint payment processing with earmarking
     const subsidy = {
       id: `SUB-${Date.now()}`,
       farmerId,
@@ -310,24 +415,43 @@ app.post('/api/mcp/farmer/process-subsidy', async (req, res) => {
       amount: amount || 15000,
       status: 'pending_approval',
       processor: 'Crossmint',
+      
+      // Fund earmarking details
+      fundEarmarking: {
+        isEarmarked: true,
+        restrictions: restriction.restrictions,
+        restrictionMessage: restriction.message,
+        allowedUses: restriction.allowedUses,
+        canBeUsedForTrading: false,
+        requiresUsageReport: true,
+        reportingDeadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString() // 90 days
+      },
+      
       metadata: {
         ...metadata,
         requestedAt: new Date().toISOString(),
         estimatedProcessingTime: '24-48 hours',
+        fundSource: 'US Government Emergency Relief',
+        distributionMethod: 'Crossmint Digital Wallet'
       },
+      
       requiresDocumentation: true,
       documentsRequired: [
         'Proof of farm ownership',
         'Drought impact assessment',
-        'Previous year tax returns'
-      ]
+        'Previous year tax returns',
+        'Water usage records'
+      ],
+      
+      complianceNote: '📋 You must submit quarterly reports on fund usage to maintain eligibility'
     };
     
     res.json({
       success: true,
       requiresApproval: true,
       subsidy,
-      message: 'Subsidy application initiated - pending approval'
+      message: `Subsidy application initiated. ${restriction.message}`,
+      importantNotice: 'Government subsidies are tracked separately from your trading funds'
     });
     
   } catch (error) {

@@ -6,6 +6,7 @@ import Account from './pages/Account';
 import Forecast from './pages/Forecast';
 import News from './pages/News';
 import Demo from './pages/Demo';
+import Trading from './pages/Trading';
 
 const theme = createTheme({
   palette: {
@@ -56,6 +57,7 @@ function App() {
             <Route path="/forecast" element={<Forecast />} />
             <Route path="/news" element={<News />} />
             <Route path="/demo" element={<Demo />} />
+            <Route path="/trading" element={<Trading />} />
           </Routes>
         </Layout>
       </Router>
