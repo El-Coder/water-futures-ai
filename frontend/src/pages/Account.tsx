@@ -268,7 +268,7 @@ const Account: React.FC = () => {
       <Card sx={{ mb: 3, bgcolor: 'background.paper' }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Typography variant="h6" gutterBottom>
                 Drought Index Monitor
               </Typography>
@@ -301,7 +301,7 @@ const Account: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
               {isProcessing && (
                 <Box display="flex" alignItems="center" gap={2}>
                   <CircularProgress size={20} />
@@ -338,9 +338,9 @@ const Account: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Balance Overview */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -352,7 +352,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -364,7 +364,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -376,7 +376,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -392,7 +392,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Transaction History */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
               Transaction History
@@ -462,7 +462,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Subsidy Programs Info */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -493,7 +493,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Automated Trading Status */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>

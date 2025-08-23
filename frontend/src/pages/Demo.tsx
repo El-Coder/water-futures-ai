@@ -130,7 +130,7 @@ const Demo: React.FC = () => {
       
       <Grid container spacing={3}>
         {/* Drought Control Panel */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Card>
             <CardContent>
               <Typography variant="h5" gutterBottom>
@@ -138,7 +138,7 @@ const Demo: React.FC = () => {
               </Typography>
               
               <Grid container spacing={3} sx={{ mt: 2 }}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Paper sx={{ p: 3, bgcolor: 'background.default' }}>
                     <Box display="flex" alignItems="center" gap={2} mb={3}>
                       {getDroughtIcon(droughtLevel)}
@@ -198,7 +198,7 @@ const Demo: React.FC = () => {
                   </Paper>
                 </Grid>
                 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Paper sx={{ p: 3, bgcolor: 'background.default' }}>
                     <Typography variant="h6" gutterBottom>
                       Subsidy Eligibility
@@ -258,7 +258,7 @@ const Demo: React.FC = () => {
         </Grid>
         
         {/* Instructions */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -294,14 +294,14 @@ const Demo: React.FC = () => {
         </Grid>
         
         {/* Technical Details */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 🔧 Technical Implementation
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" color="textSecondary">
                     MCP Server Endpoints:
                   </Typography>
@@ -311,7 +311,7 @@ POST /api/v1/agent/notify-drought
 POST /api/v1/drought/execute-transfer`}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" color="textSecondary">
                     Transfer Flow:
                   </Typography>
