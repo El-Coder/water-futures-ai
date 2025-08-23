@@ -206,6 +206,15 @@ jobs:
         cd frontend
         # Ensure production environment is used
         NODE_ENV=production npm run build
+        # Verify the dist directory was created
+        echo "Checking build output..."
+        ls -la dist/
+        if [ ! -d "dist" ]; then
+          echo "ERROR: dist directory not found after build!"
+          exit 1
+        fi
+        echo "Build successful - dist directory contents:"
+        ls -la dist/
     
     - name: Install Firebase Tools
       run: |
@@ -220,8 +229,15 @@ jobs:
         echo "Current directory: $(pwd)"
         echo "Checking for Firebase files..."
         ls -la firebase.json .firebaserc
+        # Verify dist directory exists
+        echo "Checking dist directory..."
+        if [ ! -d "dist" ]; then
+          echo "ERROR: dist directory not found!"
+          exit 1
+        fi
+        ls -la dist/
         # Deploy using the project flag to avoid needing firebase use
-        firebase deploy --only hosting --project ${{ env.PROJECT_ID }} --non-interactive
+        firebase deploy --only hosting --project ${{ env.PROJECT_ID }} --non-interactive --debug
     
     # Commit Frontend Configuration Updates
     - name: Commit Frontend Updates
