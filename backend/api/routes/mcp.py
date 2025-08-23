@@ -5,8 +5,11 @@ from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
 from services.crossmint_service import crossmint_service
 from services.farmer_agent import farmer_agent
+from services.alpaca_service import AlpacaService
+import httpx
 
 router = APIRouter()
+alpaca_service = AlpacaService()
 
 # Farmer wallet mappings
 FARMER_WALLETS = {
@@ -30,6 +33,9 @@ async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
         # Return farmer-specific balance data in the format expected by frontend
         farmer_balance = balance_data.get("balance", 0)
         available_subsidies = await _get_available_subsidies(farmer_id)
+        
+        # Get ETH Sepolia balance (simulated for now)
+        eth_balance = 0.5 if farmer_id == "farmer-ted" else 0.1
         
         return {
             "tradingAccount": {
@@ -57,7 +63,22 @@ async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
                     "restrictions": "Must be used for conservation equipment"
                 },
                 "totalSubsidies": available_subsidies,
+                "totalAvailable": available_subsidies,
                 "cannotUseMessage": "Government subsidies cannot be used for speculative trading"
+            },
+            "ethBalance": {
+                "sepolia": eth_balance,
+                "address": wallet_address,
+                "network": "Sepolia Testnet"
+            },
+            "totalBalance": {
+                "allFunds": farmer_balance + available_subsidies,
+                "availableForTrading": farmer_balance,
+                "earmarkedForSpecificUse": available_subsidies
+            },
+            "complianceStatus": {
+                "isCompliant": True,
+                "nextReportingDate": "2025-09-01"
             },
             "farmer_id": farmer_id,
             "wallet": wallet_address,

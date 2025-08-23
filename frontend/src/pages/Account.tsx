@@ -391,7 +391,7 @@ const Account: React.FC = () => {
                     Current Balance
                   </Typography>
                   <Typography variant="h4">
-                    {formatCurrency(balance)}
+                    {isLoading ? <CircularProgress size={30} /> : formatCurrency(balance)}
                   </Typography>
                 </CardContent>
               </Card>
@@ -434,6 +434,51 @@ const Account: React.FC = () => {
             </Grid>
           </Grid>
         </Grid>
+
+        {/* Active Positions from Alpaca */}
+        {positions.length > 0 && (
+          <Grid size={12}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Active Positions (Alpaca)
+              </Typography>
+              <List>
+                {positions.map((position, index) => (
+                  <React.Fragment key={position.symbol || index}>
+                    <ListItem>
+                      <ListItemText
+                        primary={
+                          <Box display="flex" justifyContent="space-between" alignItems="center">
+                            <Box>
+                              <Typography variant="subtitle1">
+                                {position.symbol}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                {position.qty} contracts @ ${position.avg_entry_price}
+                              </Typography>
+                            </Box>
+                            <Box textAlign="right">
+                              <Typography variant="h6">
+                                ${position.market_value?.toFixed(2) || '0.00'}
+                              </Typography>
+                              <Typography 
+                                variant="body2" 
+                                color={position.unrealized_pl >= 0 ? 'success.main' : 'error.main'}
+                              >
+                                {position.unrealized_pl >= 0 ? '+' : ''}${position.unrealized_pl?.toFixed(2) || '0.00'} ({position.unrealized_plpc?.toFixed(2) || '0.00'}%)
+                              </Typography>
+                            </Box>
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                    {index < positions.length - 1 && <Divider component="li" />}
+                  </React.Fragment>
+                ))}
+              </List>
+            </Paper>
+          </Grid>
+        )}
 
         {/* Transaction History */}
         <Grid size={12}>
