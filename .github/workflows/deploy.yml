@@ -207,15 +207,18 @@ jobs:
         # Ensure production environment is used
         NODE_ENV=production npm run build
     
-    - name: Deploy to Firebase Hosting
+    - name: Install Firebase Tools
       run: |
         npm install -g firebase-tools
-        # Deploy from frontend directory
-        cd frontend
-        # Use GCP service account authentication (already set via auth step)
+    
+    - name: Deploy to Firebase Hosting
+      run: |
+        # Use GCP service account authentication
         export GOOGLE_APPLICATION_CREDENTIALS="${{ steps.auth.outputs.credentials_file_path }}"
-        # No need for 'firebase use' - project is already configured in .firebaserc
-        firebase deploy --only hosting --non-interactive --project ${{ env.PROJECT_ID }}
+        # Deploy from frontend directory where firebase.json and .firebaserc exist
+        cd frontend
+        # Deploy using the project flag to avoid needing firebase use
+        firebase deploy --only hosting --project ${{ env.PROJECT_ID }} --non-interactive
     
     # Commit Frontend Configuration Updates
     - name: Commit Frontend Updates
