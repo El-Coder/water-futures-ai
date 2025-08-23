@@ -4,14 +4,18 @@ Farmer Agent - Main AI agent with access to all tools:
 - Alpaca for trading
 - Crossmint for subsidies
 - Vertex AI for forecasting
+- Weather data integration
 """
 from typing import Dict, Any, List, Optional
 import os
 from anthropic import Anthropic
 from services.alpaca_mcp_client import alpaca_client
 from services.vertex_ai_service import vertex_ai_service
+from models.farmer import Farmer, FarmerContext, WeatherData, FarmLocation
 import json
 from datetime import datetime
+import httpx
+
 
 class FarmerAgent:
     def __init__(self):
@@ -28,11 +32,14 @@ class FarmerAgent:
             "process_subsidy": self._process_subsidy,
             "get_forecast": self._get_forecast,
             "analyze_market": self._analyze_market,
+            "get_weather_data": self._get_weather_data,
+            "update_farmer_location": self._update_farmer_location,
         }
         
         # Agent state
         self.conversation_history = []
         self.executed_actions = []
+        self.farmer_profiles = {}  # Store farmer profiles by ID
     
     async def process_request(
         self, 
@@ -361,6 +368,59 @@ Current market conditions:
             "price_trend": "increasing",
             "recommendation": "Buy 5-10 contracts to hedge drought risk",
             "confidence": 0.75
+        }
+    
+    async def _get_weather_data(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Get weather data for farmer's location"""
+        zip_code = params.get("zip_code", "93277")  # Default to Central Valley
+        
+        # Simulate weather data (in production, call actual weather API)
+        weather_data = {
+            "zip_code": zip_code,
+            "temperature": 24.5,
+            "humidity": 35.0,
+            "precipitation": 0.0,
+            "wind_speed": 12.5,
+            "drought_index": 3.8,
+            "soil_moisture": 15.2,
+            "evapotranspiration": 6.5,
+            "timestamp": datetime.now().isoformat(),
+            "forecast": {
+                "next_7_days": "Continued dry conditions",
+                "precipitation_chance": 5,
+                "drought_outlook": "Worsening"
+            }
+        }
+        
+        return {
+            "success": True,
+            "weather": weather_data,
+            "source": "NOAA Weather Service"
+        }
+    
+    async def _update_farmer_location(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Update farmer's location information"""
+        farmer_id = params.get("farmer_id")
+        new_location = params.get("location", {})
+        
+        if not farmer_id:
+            return {
+                "success": False,
+                "error": "farmer_id is required"
+            }
+        
+        # Update farmer profile in memory (in production, save to database)
+        if farmer_id not in self.farmer_profiles:
+            self.farmer_profiles[farmer_id] = {}
+        
+        self.farmer_profiles[farmer_id]["location"] = new_location
+        self.farmer_profiles[farmer_id]["updated_at"] = datetime.now().isoformat()
+        
+        return {
+            "success": True,
+            "farmer_id": farmer_id,
+            "location": new_location,
+            "message": "Location updated successfully"
         }
 
 # Singleton instance

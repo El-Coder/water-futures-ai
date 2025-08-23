@@ -34,7 +34,7 @@ gcloud run deploy water-futures-backend \
   --port 8000 \
   --memory 1Gi \
   --cpu 1 \
-  --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID,ANTHROPIC_API_KEY=your_anthropic_api_key_here"
+  --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID,ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY"
 
 # Get backend URL
 BACKEND_URL=$(gcloud run services describe water-futures-backend \

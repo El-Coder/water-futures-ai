@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     VERTEX_AI_ENDPOINT: str = os.getenv("VERTEX_AI_ENDPOINT", "")
     MODEL_NAME: str = "water-futures-forecast-model"
     
+    # Anthropic AI
+    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
+    
     # Alpaca Trading
     ALPACA_API_KEY: str = os.getenv("ALPACA_API_KEY", "")
     ALPACA_SECRET_KEY: str = os.getenv("ALPACA_SECRET_KEY", "")

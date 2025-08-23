@@ -40,6 +40,16 @@ class ChatRequest(BaseModel):
     message: str
     context: Optional[dict] = {}
 
+class WeatherRequest(BaseModel):
+    zip_code: str
+    farmer_id: Optional[str] = None
+
+class FarmerLocationUpdate(BaseModel):
+    farmer_id: str
+    zip_code: str
+    city: Optional[str] = None
+    county: Optional[str] = None
+
 @app.get("/")
 async def root():
     return {"message": "Water Futures AI API", "version": "1.0.0"}
@@ -249,6 +259,46 @@ async def execute_agent_action(request: dict):
         
     except Exception as e:
         return {"error": str(e)}
+
+@app.post("/api/v1/weather/get")
+async def get_weather(request: WeatherRequest):
+    """Get weather data for a specific zip code"""
+    try:
+        result = await farmer_agent._get_weather_data({
+            "zip_code": request.zip_code,
+            "farmer_id": request.farmer_id
+        })
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/farmer/update-location")
+async def update_farmer_location(request: FarmerLocationUpdate):
+    """Update farmer's location with zip code"""
+    try:
+        result = await farmer_agent._update_farmer_location({
+            "farmer_id": request.farmer_id,
+            "location": {
+                "zip_code": request.zip_code,
+                "city": request.city,
+                "county": request.county,
+                "state": "CA"
+            }
+        })
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v1/weather/current/{zip_code}")
+async def get_current_weather(zip_code: str):
+    """Get current weather for a zip code"""
+    try:
+        result = await farmer_agent._get_weather_data({
+            "zip_code": zip_code
+        })
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health_check():

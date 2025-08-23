@@ -61,6 +61,8 @@ frontend/dist-ssr/
 .env.*.local
 backend/.env
 frontend/.env
+mcp-servers/.env
+mcp-servers/*/.env
 
 # Logs
 logs/

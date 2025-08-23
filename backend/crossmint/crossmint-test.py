@@ -7,8 +7,10 @@ payload = {
     "amount": "0.5", 
 }
 
+import os
+
 headers = {
-    "x-api-key": "sk_staging_9ymj6pzDVzTXAJxEHx2Eiaudh7Bv9tAZYkbC7oJyXxQUupx3fi4pQyNmShEZ7BMDSkT2DGw8EyxcPUvqLyVoJTP3DQQ2JQya8iB7eTK95tWKHDK9xMGapfbgoYBvY8ettfPjCw2Sm9kxEMxEe3iWAvWEPrW3PuQUXAzjppFbauu5uHNK1rDdiQ2XoKecGbMre99jNGmdVQkabJ84QYPbzMBj",
+    "x-api-key": os.getenv("CROSSMINT_API_KEY", "your_crossmint_api_key_here"),
     "Content-Type": "application/json"
 }
 

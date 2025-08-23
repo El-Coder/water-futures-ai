@@ -20,13 +20,23 @@ source venv/bin/activate
 echo "Installing dependencies..."
 pip install -r requirements.txt
 
-# Create .env file with API keys
-echo "Creating .env file..."
-cat > .env << EOF
-ALPACA_API_KEY=PKBGCEN19LBO7XSXRV0P
-ALPACA_API_SECRET=c4Mbdt3J0cLKPaeUJecD6Db1sTsmiNudz0QdfyaP
+# Check if .env file exists, if not create template
+if [ ! -f .env ]; then
+    echo "Creating .env template file..."
+    echo "Please copy .env.example to .env and fill in your API keys"
+    cat > .env.example << EOF
+ALPACA_API_KEY=your_alpaca_api_key_here
+ALPACA_API_SECRET=your_alpaca_api_secret_here
 ALPACA_BASE_URL=https://paper-api.alpaca.markets
 EOF
+    echo "❌ .env file not found. Please:"
+    echo "   1. Copy .env.example to .env"
+    echo "   2. Add your actual Alpaca API credentials to .env"
+    echo "   3. Run this script again"
+    exit 1
+fi
+
+echo "Using existing .env file..."
 
 echo "Starting Alpaca MCP Server..."
 python alpaca_mcp_server.py &

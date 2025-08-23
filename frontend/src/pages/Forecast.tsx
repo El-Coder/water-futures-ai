@@ -21,7 +21,21 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import waterFuturesAPI from '../services/api';
-import { ForecastResponse } from '../types';
+
+interface ForecastResponse {
+  contractCode: string;
+  currentPrice: number;
+  predictedPrices: Array<{
+    date: string;
+    price: number;
+  }>;
+  confidenceIntervals: {
+    upper: number[];
+    lower: number[];
+  };
+  modelConfidence: number;
+  factors: Record<string, any>;
+}
 
 const Forecast: React.FC = () => {
   const [contractCode, setContractCode] = useState('NQH25');

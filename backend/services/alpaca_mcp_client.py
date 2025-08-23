@@ -11,9 +11,9 @@ from alpaca.trading.enums import OrderSide, TimeInForce
 
 class AlpacaMCPClient:
     def __init__(self):
-        # Alpaca credentials
-        self.api_key = os.getenv("ALPACA_API_KEY", "PKBGCEN19LBO7XSXRV0P")
-        self.api_secret = os.getenv("ALPACA_SECRET_KEY", "c4Mbdt3J0cLKPaeUJecD6Db1sTsmiNudz0QdfyaP")
+        # Alpaca credentials from environment variables only
+        self.api_key = os.getenv("ALPACA_API_KEY")
+        self.api_secret = os.getenv("ALPACA_SECRET_KEY")
         
         # Initialize Alpaca client for direct trading
         self.trading_client = TradingClient(

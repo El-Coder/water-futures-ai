@@ -218,12 +218,17 @@ const ChatbotV2: React.FC = () => {
       {/* Chat Button */}
       {!open && (
         <Fab
-          color="primary"
+          color="secondary"
           sx={{
             position: 'fixed',
-            bottom: 16,
-            right: 16,
-            zIndex: 1000,
+            bottom: 24,
+            right: 24,
+            zIndex: 9999,
+            bgcolor: '#1976D2',
+            color: 'white',
+            '&:hover': {
+              bgcolor: '#1565C0',
+            },
           }}
           onClick={() => setOpen(true)}
         >
