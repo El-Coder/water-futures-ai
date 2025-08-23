@@ -1,13 +1,25 @@
+import os
+import sys
+from pathlib import Path
 import requests
+
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent))
+
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 url = "https://staging.crossmint.com/api/2025-06-09/wallets/userId:unclesam:evm/balances"
 
-querystring = {"tokens":"usdc","chains":"ethereum-sepolia"}
+querystring = {"tokens": "usdc", "chains": "ethereum-sepolia"}
 
-import os
-
-headers = {"X-API-KEY": os.getenv("CROSSMINT_API_KEY", "your_crossmint_api_key_here")}
+headers = {"X-API-KEY": os.getenv("CROSSMINT_API_KEY")}
 
 response = requests.get(url, headers=headers, params=querystring)
 
-print(response.json())
+if response.status_code == 200:
+    print(response.json())
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())

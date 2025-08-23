@@ -1,12 +1,13 @@
-from services.embeddings_service import EmbeddingsService
-from services.satellite_service import SatelliteService
-from services.pdfm_service import PDFMService
+# from services.embeddings_service import EmbeddingsService
+# from services.satellite_service import SatelliteService
+# from services.pdfm_service import PDFMService
 
 class EmbeddingsController:
     def __init__(self):
-        self.embeddings_service = EmbeddingsService()
-        self.satellite_service = SatelliteService()
-        self.pdfm_service = PDFMService()
+        # self.embeddings_service = EmbeddingsService()
+        # self.satellite_service = SatelliteService()
+        # self.pdfm_service = PDFMService()
+        pass
     
     async def analyze_location(self, latitude: float, longitude: float, radius_km: float):
         satellite_data = await self.satellite_service.get_embedding(
