@@ -1,0 +1,66 @@
+steps:
+  # Build backend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/water-futures-ai/backend:$COMMIT_SHA', './backend']
+  
+  # Build frontend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/water-futures-ai/frontend:$COMMIT_SHA', './frontend']
+  
+  # Push backend image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/water-futures-ai/backend:$COMMIT_SHA']
+  
+  # Push frontend image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/water-futures-ai/frontend:$COMMIT_SHA']
+  
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'water-futures-backend'
+      - '--image'
+      - 'gcr.io/water-futures-ai/backend:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8000'
+      - '--memory'
+      - '1Gi'
+      - '--cpu'
+      - '1'
+      - '--set-env-vars'
+      - 'GCP_PROJECT_ID=water-futures-ai'
+  
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'water-futures-frontend'
+      - '--image'
+      - 'gcr.io/water-futures-ai/frontend:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '80'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+
+images:
+  - 'gcr.io/water-futures-ai/backend:$COMMIT_SHA'
+  - 'gcr.io/water-futures-ai/frontend:$COMMIT_SHA'
+
+timeout: '1200s'

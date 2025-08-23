@@ -1,0 +1,17 @@
+{
+  "name": "water-futures-trading-agent",
+  "version": "1.0.0",
+  "description": "MCP server for water futures trading using Alpaca",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@smithery/sdk": "latest",
+    "@smithery/host-nodejs": "latest",
+    "@alpacahq/alpaca-trade-api": "^3.0.0",
+    "axios": "^1.6.0"
+  }
+}

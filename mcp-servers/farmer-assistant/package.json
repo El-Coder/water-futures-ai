@@ -1,0 +1,19 @@
+{
+  "name": "farmer-assistant-mcp",
+  "version": "1.0.0",
+  "description": "Claude-powered MCP server for farmer assistance with trading and subsidies",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "@smithery/sdk": "latest",
+    "@smithery/host-nodejs": "latest",
+    "@crossmint/client-sdk-react-ui": "^0.2.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1"
+  }
+}

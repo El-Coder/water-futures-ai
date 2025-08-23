@@ -1,0 +1,31 @@
+# Core
+fastapi==0.115.5
+uvicorn[standard]==0.34.0
+python-dotenv==1.0.1
+pydantic==2.10.4
+
+# AI/ML
+anthropic==0.34.0
+
+# Database
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+
+# Google Cloud (simplified)
+google-cloud-storage==2.18.2
+google-cloud-aiplatform==1.38.0
+
+# API & HTTP
+httpx==0.28.1
+requests==2.32.3
+
+# Data Processing
+pandas==2.2.3
+numpy==2.2.1
+scikit-learn==1.6.1
+
+# Trading
+alpaca-py==0.35.0
+
+# File handling
+python-multipart==0.0.19

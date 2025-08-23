@@ -1,0 +1,84 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  min-height: 100vh;
+}
+
+/* Water droplet animation */
+@keyframes water-drip {
+  0% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+}
+
+/* Grass wave animation */
+@keyframes grass-wave {
+  0%, 100% {
+    transform: skewX(-2deg);
+  }
+  50% {
+    transform: skewX(2deg);
+  }
+}
+
+.water-icon {
+  color: #29B6F6;
+  animation: water-drip 3s ease-in-out infinite;
+}
+
+.farm-card {
+  background: linear-gradient(135deg, #F1F8E9 0%, #E8F5E9 100%);
+  border-radius: 16px;
+  padding: 2em;
+  box-shadow: 0 4px 20px rgba(46, 125, 50, 0.1);
+  border: 2px solid rgba(46, 125, 50, 0.1);
+  transition: all 0.3s ease;
+}
+
+.farm-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(46, 125, 50, 0.15);
+  border-color: rgba(46, 125, 50, 0.3);
+}
+
+.water-stat {
+  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+  border-radius: 12px;
+  padding: 1.5em;
+  margin: 1em 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.water-stat::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1976D2, #29B6F6, #1976D2);
+  animation: grass-wave 4s ease-in-out infinite;
+}
+
+.grass-decoration {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to top, #66BB6A 0%, transparent 100%);
+  pointer-events: none;
+  opacity: 0.1;
+  z-index: -1;
+}
