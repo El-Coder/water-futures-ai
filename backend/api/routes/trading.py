@@ -33,6 +33,13 @@ async def place_order(request: OrderRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/account")
+async def get_account():
+    try:
+        return await controller.get_account()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/portfolio")
 async def get_portfolio():
     try:

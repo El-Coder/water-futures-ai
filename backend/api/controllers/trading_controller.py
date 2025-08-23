@@ -33,6 +33,9 @@ class TradingController:
             "message": f"Order placed successfully"
         }
     
+    async def get_account(self):
+        return await self.alpaca_service.get_account()
+    
     async def get_portfolio_status(self):
         portfolio = await self.alpaca_service.get_account()
         positions = await self.alpaca_service.get_positions()

@@ -27,15 +27,41 @@ async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
         # Get balance from Crossmint service
         balance_data = await crossmint_service.get_wallet_balance(wallet_address)
         
-        # Return farmer-specific balance data
+        # Return farmer-specific balance data in the format expected by frontend
+        farmer_balance = balance_data.get("balance", 0)
+        available_subsidies = await _get_available_subsidies(farmer_id)
+        
         return {
+            "tradingAccount": {
+                "cash": farmer_balance,
+                "portfolio_value": farmer_balance,
+                "buying_power": farmer_balance,
+                "unrealized_pnl": 0,
+                "realized_pnl": 0,
+                "canUseForTrading": True,
+                "message": "Trading account active"
+            },
+            "subsidyAccounts": {
+                "drought_relief": {
+                    "balance": available_subsidies,
+                    "available": available_subsidies,
+                    "pending": 0,
+                    "canUseForTrading": False,
+                    "restrictions": "Can only be used for water-related expenses"
+                },
+                "water_conservation": {
+                    "balance": 0,
+                    "available": 0,
+                    "pending": 0,
+                    "canUseForTrading": False,
+                    "restrictions": "Must be used for conservation equipment"
+                },
+                "totalSubsidies": available_subsidies,
+                "cannotUseMessage": "Government subsidies cannot be used for speculative trading"
+            },
             "farmer_id": farmer_id,
             "wallet": wallet_address,
-            "balance": balance_data.get("balance", 0),
-            "currency": balance_data.get("currency", "USD"),
-            "last_updated": balance_data.get("last_updated"),
-            "pending_subsidies": 0,
-            "available_subsidies": await _get_available_subsidies(farmer_id)
+            "last_updated": balance_data.get("last_updated")
         }
         
     except HTTPException:
