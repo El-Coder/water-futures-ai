@@ -214,8 +214,8 @@ jobs:
         cd frontend
         # Use GCP service account authentication (already set via auth step)
         export GOOGLE_APPLICATION_CREDENTIALS="${{ steps.auth.outputs.credentials_file_path }}"
-        firebase use ${{ env.PROJECT_ID }}
-        firebase deploy --only hosting --non-interactive
+        # No need for 'firebase use' - project is already configured in .firebaserc
+        firebase deploy --only hosting --non-interactive --project ${{ env.PROJECT_ID }}
     
     # Commit Frontend Configuration Updates
     - name: Commit Frontend Updates
