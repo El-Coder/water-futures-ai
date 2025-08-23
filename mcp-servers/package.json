@@ -1,0 +1,24 @@
+{
+  "name": "water-futures-mcp-http",
+  "version": "1.0.0",
+  "description": "HTTP wrapper for Water Futures MCP servers",
+  "main": "http-wrapper.js",
+  "type": "module",
+  "scripts": {
+    "start": "node http-wrapper.js",
+    "dev": "node --watch http-wrapper.js",
+    "test": "node test-mcp.js"
+  },
+  "dependencies": {
+    "@alpacahq/alpaca-trade-api": "^3.0.0",
+    "@smithery/host-nodejs": "latest",
+    "@smithery/sdk": "latest",
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

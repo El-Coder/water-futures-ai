@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Card,
@@ -16,7 +16,6 @@ import {
 import {
   AccountBalance as AccountBalanceIcon,
   TrendingUp,
-  TrendingDown,
   AttachMoney,
   Agriculture,
 } from '@mui/icons-material';
@@ -28,12 +27,21 @@ interface Transaction {
   amount: number;
   timestamp: string;
   source?: string;
-  metadata?: any;
+  metadata?: {
+    program?: string;
+    region?: string;
+    severity?: number;
+    contractCode?: string;
+    quantity?: number;
+    price?: number;
+    confidence?: number;
+    status?: string;
+  };
 }
 
 const Account: React.FC = () => {
-  const [balance, setBalance] = useState(125000);
-  const [transactions, setTransactions] = useState<Transaction[]>([
+  const [balance] = useState(125000);
+  const [transactions] = useState<Transaction[]>([
     {
       id: '1',
       type: 'deposit',
@@ -253,7 +261,7 @@ const Account: React.FC = () => {
                               <Chip 
                                 label={transaction.source} 
                                 size="small" 
-                                color={getTransactionColor(transaction.type) as any}
+                                color={getTransactionColor(transaction.type) as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
                                 sx={{ mt: 0.5 }}
                               />
                             )}

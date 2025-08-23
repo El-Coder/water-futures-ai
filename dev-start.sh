@@ -66,7 +66,7 @@ EOF
     
     # Start FastAPI server
     echo -e "${GREEN}Starting FastAPI server on http://localhost:8000${NC}"
-    python main_simple.py &
+    python main.py &
     BACKEND_PID=$!
     echo "Backend PID: $BACKEND_PID"
     

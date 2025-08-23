@@ -34,6 +34,7 @@ import {
   MonetizationOn as MoneyIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { mcpClient } from '../services/mcp-client';
 
 interface Message {
   id: string;

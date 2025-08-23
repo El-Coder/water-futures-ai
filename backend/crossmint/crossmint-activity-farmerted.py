@@ -1,6 +1,6 @@
 import requests
 
-url = "https://staging.crossmint.com/api/2025-06-09/wallets/user:farmerted:evm/balances"
+url = "https://staging.crossmint.com/api/unstable/wallets/user:farmerted:evm/balances"
 
 querystring = {"tokens":"usdc","chains":"ethereum-sepolia"}
 
