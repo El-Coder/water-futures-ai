@@ -155,11 +155,21 @@ class CrossmintService:
         try:
             async with httpx.AsyncClient() as client:
                 # Simulated balance check
+                # Set specific balances for known wallets
+                if wallet == self.uncle_sam_wallet:
+                    balance = 1000000000  # $1B for Uncle Sam
+                elif wallet == "0xfarmerted123456789":
+                    balance = 125000  # Farmer Ted's actual balance
+                elif wallet == "0xfarmeralice987654321":
+                    balance = 75000  # Farmer Alice's balance
+                else:
+                    balance = 50000  # Default balance
+                
                 return {
                     "wallet": wallet,
-                    "balance": 1000000000 if wallet == self.uncle_sam_wallet else 50000,
+                    "balance": balance,
                     "currency": "USD",
-                    "available_for_subsidies": 500000000,
+                    "available_for_subsidies": 500000000 if wallet == self.uncle_sam_wallet else 0,
                     "pending_payments": 0,
                     "last_updated": datetime.now().isoformat()
                 }

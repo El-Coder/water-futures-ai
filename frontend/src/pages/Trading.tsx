@@ -91,8 +91,31 @@ const Trading: React.FC = () => {
   const MCP_URL = API_CONFIG.MCP_URL;
 
   useEffect(() => {
+    // Fetch balance and transactions on component mount and when page becomes visible
     fetchBalance();
     fetchTransactions();
+
+    // Add visibility change listener to refresh when tab becomes active
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchBalance();
+        fetchTransactions();
+      }
+    };
+
+    // Add focus listener to refresh when window gains focus
+    const handleFocus = () => {
+      fetchBalance();
+      fetchTransactions();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const fetchBalance = async () => {
