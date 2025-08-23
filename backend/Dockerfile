@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+# Backend Dockerfile for Cloud Run
+FROM python:3.10-slim
 
 WORKDIR /app
 
@@ -17,8 +18,12 @@ COPY . .
 # Create data directory
 RUN mkdir -p /app/data
 
-# Expose port
-EXPOSE 8000
+# Set environment variables for Cloud Run
+ENV PORT=8080
+ENV PYTHONUNBUFFERED=1
 
-# Run the application
-CMD ["python", "main_simple.py"]
+# Expose port (Cloud Run uses 8080 by default)
+EXPOSE 8080
+
+# Run the application with uvicorn
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT}

@@ -45,7 +45,8 @@ class FarmerLocationUpdate(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
+    # Database not required for core functionality
+    # await init_db()
     yield
     
 app = FastAPI(

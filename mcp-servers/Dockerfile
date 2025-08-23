@@ -1,19 +1,24 @@
-# MCP HTTP Service for Cloud Run
+# MCP Servers Dockerfile for Cloud Run
 FROM node:18-alpine
 
+# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci --only=production
 
-# Copy application files
+# Copy application code
 COPY . .
 
-# Expose port (Cloud Run will set PORT env variable)
+# Set environment variables for Cloud Run
+ENV PORT=8080
+ENV NODE_ENV=production
+
+# Expose port
 EXPOSE 8080
 
-# Start the HTTP wrapper
+# Run the HTTP wrapper
 CMD ["node", "http-wrapper.js"]

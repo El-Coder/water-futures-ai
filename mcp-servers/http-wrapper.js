@@ -5,8 +5,8 @@
 
 import express from 'express';
 import cors from 'cors';
-import { createServer } from '@smithery/sdk';
-import { createNodeHost } from '@smithery/host-nodejs';
+import bodyParser from 'body-parser';
+import { createStatefulServer } from '@smithery/sdk';
 import Alpaca from '@alpacahq/alpaca-trade-api';
 import axios from 'axios';
 import dotenv from 'dotenv';
@@ -18,6 +18,7 @@ const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(cors());
+app.use(bodyParser.json());
 app.use(express.json());
 
 // Initialize Alpaca client
@@ -30,18 +31,8 @@ const alpaca = new Alpaca({
 // Backend URL for getting forecasts
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
-// Initialize MCP servers
-const tradingServer = createServer({
-  name: 'water-futures-trading',
-  version: '1.0.0',
-  description: 'Trading agent for water futures',
-});
-
-const farmerServer = createServer({
-  name: 'farmer-assistant',
-  version: '1.0.0',
-  description: 'AI assistant for farmers',
-});
+// MCP Server configuration (using Smithery SDK)
+// For now, we'll just expose the endpoints directly without complex MCP initialization
 
 // ============================
 // Trading MCP Tools
