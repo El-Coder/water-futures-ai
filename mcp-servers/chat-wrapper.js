@@ -294,6 +294,54 @@ else:
       ];
     }
     
+    // Get balance information for context
+    let balanceInfo = '';
+    let transactionHistory = '';
+    
+    try {
+      // Fetch current balances
+      const balanceData = await axios.get(`http://localhost:8080/api/mcp/farmer/balance/${userId}`);
+      const balance = balanceData.data;
+      
+      balanceInfo = `
+CURRENT ACCOUNT BALANCES:
+========================
+💰 ALPACA TRADING ACCOUNT (Paper Trading):
+   • Cash Available: $${balance.tradingAccount.cash.toLocaleString()}
+   • Buying Power: $${balance.tradingAccount.buying_power.toLocaleString()}
+   • Portfolio Value: $${balance.tradingAccount.portfolio_value.toLocaleString()}
+   • Status: ✅ UNRESTRICTED - Can be used for futures trading
+   
+🏛️ UNCLE SAM SUBSIDY FUNDS (via Crossmint):
+   • Total Subsidies: $${balance.subsidyAccounts.totalSubsidies.toLocaleString()}
+   • Available Balance: $${balance.subsidyAccounts.totalAvailable.toLocaleString()}
+   • Status: 🔒 RESTRICTED - Cannot be used for trading
+   • Allowed Uses: Water purchases, conservation equipment only
+   
+📊 TOTAL BALANCE SUMMARY:
+   • All Funds Combined: $${balance.totalBalance.allFunds.toLocaleString()}
+   • Trading-Eligible: $${balance.totalBalance.availableForTrading.toLocaleString()} (Alpaca only)
+   • Earmarked/Restricted: $${balance.totalBalance.earmarkedForSpecificUse.toLocaleString()} (Uncle Sam subsidies)`;
+      
+      // Add recent transactions
+      transactionHistory = `
+RECENT TRANSACTIONS:
+===================`;
+      
+      // Add subsidy transactions
+      for (const [type, details] of Object.entries(balance.subsidyAccounts.accounts)) {
+        if (details.transactions && details.transactions.length > 0) {
+          transactionHistory += `\n\n${type.toUpperCase()} (Uncle Sam via Crossmint):`;
+          details.transactions.forEach(tx => {
+            transactionHistory += `\n  • ${tx.date}: -$${tx.amount} for ${tx.purpose} [${tx.compliant ? '✅ Compliant' : '❌ Review Required'}]`;
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error fetching balance context:', error);
+    }
+    
     // Use Anthropic AI to generate response
     let response;
     try {
@@ -314,9 +362,22 @@ else:
       });
       
       // Add current message with context
-      const systemPrompt = `You are a helpful Water Futures AI assistant specializing in water futures trading, drought management, and government subsidies for farmers. 
-      ${contextInfo ? `Context: ${contextInfo}` : ''}
-      Help the user with their query in a conversational and informative way. Keep responses concise and relevant.`;
+      const systemPrompt = `You are a helpful Water Futures AI assistant specializing in water futures trading, drought management, and government subsidies for farmers.
+
+CRITICAL RULES FOR FUND MANAGEMENT:
+1. ALWAYS distinguish between Alpaca trading funds and Uncle Sam subsidy funds
+2. Alpaca funds = UNRESTRICTED (can trade futures)
+3. Uncle Sam subsidies via Crossmint = RESTRICTED (CANNOT trade, only for water/equipment)
+4. When discussing balances, ALWAYS specify the source
+5. When executing trades, ALWAYS confirm using Alpaca funds only
+6. When processing subsidies, ALWAYS mention they're from Uncle Sam via Crossmint and are restricted
+
+${balanceInfo}
+${transactionHistory}
+
+Additional Context: ${contextInfo || 'No additional context'}
+
+IMPORTANT: Be very clear about fund sources in every response. Help the user understand which funds can be used for what purpose.`;
       
       const aiResponse = await anthropic.messages.create({
         model: 'claude-3-haiku-20240307',

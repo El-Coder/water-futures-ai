@@ -35,6 +35,7 @@ import {
 import waterFuturesAPI from '../services/api';
 import ChatbotV2 from '../components/ChatbotV2';
 import axios from 'axios';
+import { API_CONFIG } from '../config/api';
 
 interface Balance {
   tradingAccount: {
@@ -87,7 +88,7 @@ const Trading: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(true);
   
-  const MCP_URL = import.meta.env.VITE_MCP_URL || 'http://localhost:8080';
+  const MCP_URL = API_CONFIG.MCP_URL;
 
   useEffect(() => {
     fetchBalance();
@@ -96,7 +97,7 @@ const Trading: React.FC = () => {
 
   const fetchBalance = async () => {
     try {
-      const response = await axios.get(`${MCP_URL}/api/mcp/farmer/balance/farmer-ted`);
+      const response = await axios.get(`${API_CONFIG.MCP_URL}/api/mcp/farmer/balance/farmer-ted`);
       setBalance(response.data);
     } catch (error) {
       console.error('Error fetching balance:', error);

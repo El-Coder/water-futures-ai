@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Card,
@@ -193,7 +193,7 @@ const Account: React.FC = () => {
       
       try {
         // Call MCP server to process transfer
-        const response = await fetch('http://localhost:8001/api/v1/drought/transfer', {
+        const response = await fetch(`${import.meta.env.VITE_CHAT_URL || 'http://localhost:8001'}/api/v1/drought/transfer`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ const Account: React.FC = () => {
           setTransferStatus('✅ Drought relief transfer completed! 1 USDC token sent from Uncle Sam.');
           
           // Update chat context
-          await fetch('http://localhost:8001/api/v1/context/update', {
+          await fetch(`${import.meta.env.VITE_CHAT_URL || 'http://localhost:8001'}/api/v1/context/update`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -240,7 +240,7 @@ const Account: React.FC = () => {
       }
     } else {
       // Update context for non-high drought levels
-      await fetch('http://localhost:8001/api/v1/context/update', {
+      await fetch(`${import.meta.env.VITE_CHAT_URL || 'http://localhost:8001'}/api/v1/context/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

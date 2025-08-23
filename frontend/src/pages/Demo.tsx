@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_CONFIG } from '../config/api';
 import {
   Box,
   Card,
@@ -60,7 +61,7 @@ const Demo: React.FC = () => {
     
     try {
       // Update the global context for the chatbot
-      const contextResponse = await fetch('http://localhost:8001/api/v1/context/drought', {
+      const contextResponse = await fetch(API_CONFIG.DROUGHT_CONTEXT_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,7 +75,7 @@ const Demo: React.FC = () => {
       
       if (contextResponse.ok) {
         // Trigger the agent to send a proactive message
-        await fetch('http://localhost:8001/api/v1/agent/notify-drought', {
+        await fetch(API_CONFIG.DROUGHT_NOTIFY_ENDPOINT, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

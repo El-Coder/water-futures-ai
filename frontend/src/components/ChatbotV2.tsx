@@ -35,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { mcpClient } from '../services/mcp-client';
+import { API_CONFIG } from '../config/api';
 
 interface Message {
   id: string;
@@ -130,8 +131,8 @@ const ChatbotV2: React.FC = () => {
     try {
       // Determine which endpoint to use based on mode
       const endpoint = agentMode 
-        ? 'http://localhost:8001/api/v1/agent/execute'
-        : 'http://localhost:8001/api/v1/chat';
+        ? API_CONFIG.AGENT_ENDPOINT
+        : API_CONFIG.CHAT_ENDPOINT;
 
       const response = await axios.post(endpoint, {
         message: input,
@@ -192,7 +193,7 @@ const ChatbotV2: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8001/api/v1/agent/action', {
+      const response = await axios.post(`${API_CONFIG.CHAT_URL}/api/v1/agent/action`, {
         action,
         context: {
           agentModeEnabled: true,
