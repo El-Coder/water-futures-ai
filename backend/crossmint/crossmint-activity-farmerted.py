@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv("../.env")
 
-url = "https://staging.crossmint.com/api/unstable/wallets/userId:farmerted:evm-smart-wallet/activity"
+url = "https://staging.crossmint.com/api/unstable/wallets/userId:farmerted:evm/activity"
 
-querystring = {"tokens":"usdc","chains":"ethereum-sepolia"}
+querystring = {"chain":"ethereum-sepolia"}
 
 headers = {"X-API-KEY": os.getenv("CROSSMINT_API_KEY")}
 
