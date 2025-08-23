@@ -294,26 +294,21 @@ app.get('/api/mcp/trading/portfolio', async (req, res) => {
     let positions;
     try {
       const alpacaPositions = await alpaca.getPositions();
+      console.log('Alpaca Positions:', alpacaPositions.length, 'positions found');
+      
       positions = alpacaPositions.map(pos => ({
         symbol: pos.symbol,
         qty: parseFloat(pos.qty),
         avg_entry_price: parseFloat(pos.avg_entry_price),
         market_value: parseFloat(pos.market_value),
-        unrealized_pl: parseFloat(pos.unrealized_pl),
-        unrealized_plpc: parseFloat(pos.unrealized_plpc),
+        unrealized_pl: parseFloat(pos.unrealized_pl || 0),
+        unrealized_plpc: parseFloat(pos.unrealized_plpc || 0),
+        current_price: parseFloat(pos.current_price || pos.market_value / pos.qty)
       }));
     } catch (error) {
-      // Fallback to mock positions
-      positions = [
-        {
-          symbol: 'NQH25',
-          qty: 10,
-          avg_entry_price: 500,
-          market_value: 5080,
-          unrealized_pl: 80,
-          unrealized_plpc: 1.6,
-        }
-      ];
+      console.error('Alpaca Positions Error:', error.message);
+      // Return empty array if no positions
+      positions = [];
     }
     
     res.json({
