@@ -338,9 +338,9 @@ const Account: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Balance Overview */}
-        <Grid size={12}>
+        <Grid item xs={12}>
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid item xs={12} md={3}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -352,7 +352,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid item xs={12} md={3}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -364,7 +364,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid item xs={12} md={3}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -376,7 +376,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid item xs={12} md={3}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -392,7 +392,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Transaction History */}
-        <Grid size={12}>
+        <Grid item xs={12}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
               Transaction History
@@ -462,7 +462,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Subsidy Programs Info */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -493,7 +493,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Automated Trading Status */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
