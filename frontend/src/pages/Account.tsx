@@ -268,7 +268,7 @@ const Account: React.FC = () => {
       <Card sx={{ mb: 3, bgcolor: 'background.paper' }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid item xs={12} md={4}>
               <Typography variant="h6" gutterBottom>
                 Drought Index Monitor
               </Typography>
@@ -301,7 +301,7 @@ const Account: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: 8 }}>
+            <Grid item xs={12} md={8}>
               {isProcessing && (
                 <Box display="flex" alignItems="center" gap={2}>
                   <CircularProgress size={20} />

@@ -181,7 +181,7 @@ const Trading: React.FC = () => {
       
       {/* Fund Balance Overview */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ bgcolor: '#e8f5e9' }}>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -204,7 +204,7 @@ const Trading: React.FC = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ bgcolor: '#fff3e0' }}>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -227,7 +227,7 @@ const Trading: React.FC = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -278,7 +278,7 @@ const Trading: React.FC = () => {
       {/* Trading Tab */}
       {tabValue === 0 && (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -344,7 +344,7 @@ const Trading: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -352,7 +352,7 @@ const Trading: React.FC = () => {
               </Typography>
               
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Typography color="textSecondary" variant="subtitle2">
                     Portfolio Value
                   </Typography>
@@ -360,7 +360,7 @@ const Trading: React.FC = () => {
                     ${balance?.tradingAccount.portfolio_value.toLocaleString() || '0'}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Typography color="textSecondary" variant="subtitle2">
                     Cash Balance
                   </Typography>
@@ -368,22 +368,22 @@ const Trading: React.FC = () => {
                     ${balance?.tradingAccount.cash.toLocaleString() || '0'}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Typography color="textSecondary" variant="subtitle2">
                     Unrealized P&L
                   </Typography>
-                  <Typography variant="h6" color={balance?.tradingAccount.unrealized_pnl >= 0 ? "success.main" : "error.main"}>
-                    {balance?.tradingAccount.unrealized_pnl >= 0 ? '+' : ''}
-                    ${balance?.tradingAccount.unrealized_pnl.toLocaleString() || '0'}
+                  <Typography variant="h6" color={(balance?.tradingAccount.unrealized_pnl ?? 0) >= 0 ? "success.main" : "error.main"}>
+                    {(balance?.tradingAccount.unrealized_pnl ?? 0) >= 0 ? '+' : ''}
+                    ${balance?.tradingAccount.unrealized_pnl?.toLocaleString() || '0'}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Typography color="textSecondary" variant="subtitle2">
                     Realized P&L
                   </Typography>
-                  <Typography variant="h6" color={balance?.tradingAccount.realized_pnl >= 0 ? "success.main" : "error.main"}>
-                    {balance?.tradingAccount.realized_pnl >= 0 ? '+' : ''}
-                    ${balance?.tradingAccount.realized_pnl.toLocaleString() || '0'}
+                  <Typography variant="h6" color={(balance?.tradingAccount.realized_pnl ?? 0) >= 0 ? "success.main" : "error.main"}>
+                    {(balance?.tradingAccount.realized_pnl ?? 0) >= 0 ? '+' : ''}
+                    ${balance?.tradingAccount.realized_pnl?.toLocaleString() || '0'}
                   </Typography>
                 </Grid>
               </Grid>
@@ -472,7 +472,7 @@ const Trading: React.FC = () => {
       {/* Subsidy Details Tab */}
       {tabValue === 2 && (
         <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <Alert severity="warning" sx={{ mb: 2 }}>
               <Typography variant="body2">
                 ⚠️ Government subsidies via Crossmint are EARMARKED and cannot be used for futures trading
@@ -480,7 +480,7 @@ const Trading: React.FC = () => {
             </Alert>
           </Grid>
           {Object.entries(balance?.subsidyAccounts.accounts || {}).map(([type, details]: [string, any]) => (
-            <Grid item xs={12} md={6} key={type}>
+            <Grid size={{ xs: 12, md: 6 }} key={type}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -544,11 +544,9 @@ const Trading: React.FC = () => {
         autoHideDuration={6000}
         onClose={() => setOrderStatus(null)}
       >
-        {orderStatus && (
-          <Alert severity={orderStatus.type} onClose={() => setOrderStatus(null)}>
-            {orderStatus.message}
-          </Alert>
-        )}
+        <Alert severity={orderStatus?.type || 'info'} onClose={() => setOrderStatus(null)}>
+          {orderStatus?.message || ''}
+        </Alert>
       </Snackbar>
     </Box>
   );
