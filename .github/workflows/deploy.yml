@@ -212,11 +212,14 @@ jobs:
         npm install -g firebase-tools
     
     - name: Deploy to Firebase Hosting
+      working-directory: ./frontend
       run: |
         # Use GCP service account authentication
         export GOOGLE_APPLICATION_CREDENTIALS="${{ steps.auth.outputs.credentials_file_path }}"
-        # Deploy from frontend directory where firebase.json and .firebaserc exist
-        cd frontend
+        # Verify we're in the right directory and files exist
+        echo "Current directory: $(pwd)"
+        echo "Checking for Firebase files..."
+        ls -la firebase.json .firebaserc
         # Deploy using the project flag to avoid needing firebase use
         firebase deploy --only hosting --project ${{ env.PROJECT_ID }} --non-interactive
     
