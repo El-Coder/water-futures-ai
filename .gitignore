@@ -165,3 +165,6 @@ service-account.json
 *.njsproj
 *.sln
 *.sw?
+
+# LLM helper directories
+.claude/
