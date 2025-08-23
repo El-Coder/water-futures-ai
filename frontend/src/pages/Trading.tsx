@@ -22,15 +22,11 @@ import {
   Divider,
   Tab,
   Tabs,
-  CircularProgress,
 } from '@mui/material';
 import {
   AccountBalance,
-  Warning,
   CheckCircle,
   Lock,
-  TrendingUp,
-  AttachMoney,
 } from '@mui/icons-material';
 import waterFuturesAPI from '../services/api';
 import ChatbotV2 from '../components/ChatbotV2';
@@ -50,20 +46,30 @@ interface Balance {
   subsidyAccounts: {
     totalSubsidies: number;
     totalAvailable: number;
-    accounts: any;
+    accounts: Record<string, {
+      amount: number;
+      available: number;
+      used: number;
+      restrictions: string;
+    }>;
     canUseForTrading: boolean;
     message: string;
+  };
+  ethBalance?: {
+    sepolia: number;
+    address: string;
+    network: string;
   };
   totalBalance: {
     allFunds: number;
     availableForTrading: number;
     earmarkedForSpecificUse: number;
-    message: string;
+    message?: string;
   };
-  complianceStatus: {
+  complianceStatus?: {
     isCompliant: boolean;
     nextReportingDate: string;
-    warnings: string[];
+    warnings?: string[];
   };
 }
 
@@ -87,11 +93,9 @@ const Trading: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [tabValue, setTabValue] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(true);
-  
-  const MCP_URL = API_CONFIG.MCP_URL;
 
   useEffect(() => {
-    // Fetch balance and transactions on component mount and when page becomes visible
+    // Fetch all data on component mount and when page becomes visible
     fetchBalance();
     fetchTransactions();
 
@@ -186,7 +190,8 @@ const Trading: React.FC = () => {
       });
       fetchBalance();
       fetchTransactions();
-    } catch (error) {
+    } catch (err) {
+      console.error('Order placement failed:', err);
       setOrderStatus({
         type: 'error',
         message: 'Failed to place order. Please try again.',
@@ -204,7 +209,7 @@ const Trading: React.FC = () => {
       
       {/* Fund Balance Overview */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <Card sx={{ bgcolor: '#e8f5e9' }}>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -502,7 +507,7 @@ const Trading: React.FC = () => {
               </Typography>
             </Alert>
           </Grid>
-          {Object.entries(balance?.subsidyAccounts.accounts || {}).map(([type, details]: [string, any]) => (
+          {Object.entries(balance?.subsidyAccounts.accounts || {}).map(([type, details]) => (
             <Grid size={{ xs: 12, md: 6 }} key={type}>
               <Card>
                 <CardContent>
