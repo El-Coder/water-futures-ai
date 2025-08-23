@@ -27,6 +27,7 @@ const Demo: React.FC = () => {
   const [transferStatus, setTransferStatus] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [subsidyAmount, setSubsidyAmount] = useState<string>('0');
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Get subsidy amount based on drought level
   const getSubsidyAmount = (level: 'low' | 'medium' | 'high') => {
@@ -42,74 +43,71 @@ const Demo: React.FC = () => {
     }
   };
 
-  // Handle drought level change
-  const handleDroughtLevelChange = async (newLevel: 'low' | 'medium' | 'high') => {
-    setDroughtLevel(newLevel);
-    const amount = getSubsidyAmount(newLevel);
-    setSubsidyAmount(amount);
-    
-    // Update the global context for the chatbot
-    try {
-      await fetch('http://localhost:8001/api/v1/context/drought', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          droughtLevel: newLevel,
-          subsidyAmount: amount,
-          farmerId: 'farmer-ted',
-        }),
-      });
-      
-      if (newLevel === 'low') {
-        setTransferStatus('ℹ️ No subsidies available - drought level is low');
-      } else if (newLevel === 'medium') {
-        setTransferStatus(`⚠️ Eligible for ${amount} USDC subsidy - moderate drought detected`);
-      } else {
-        setTransferStatus(`🚨 Eligible for ${amount} USDC emergency relief - severe drought!`);
-      }
-    } catch (error) {
-      console.error('Error updating drought context:', error);
+  // Handle drought level change (just updates UI, doesn't submit)
+  const handleDroughtLevelChange = (newLevel: 'low' | 'medium' | 'high') => {
+    if (!isSubmitted) {
+      setDroughtLevel(newLevel);
+      const amount = getSubsidyAmount(newLevel);
+      setSubsidyAmount(amount);
     }
   };
-
-  // Manually trigger a transfer (for demo purposes)
-  const executeTransfer = async () => {
-    if (subsidyAmount === '0') {
-      setTransferStatus('❌ No subsidy available at low drought level');
-      return;
-    }
-    
+  
+  // Submit drought level to the system
+  const submitDroughtLevel = async () => {
     setIsProcessing(true);
-    setTransferStatus('Processing transfer...');
+    setIsSubmitted(true);
+    const amount = getSubsidyAmount(droughtLevel);
     
     try {
-      const response = await fetch('http://localhost:8001/api/v1/drought/execute-transfer', {
+      // Update the global context for the chatbot
+      const contextResponse = await fetch('http://localhost:8001/api/v1/context/drought', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           droughtLevel,
-          amount: subsidyAmount,
+          subsidyAmount: amount,
           farmerId: 'farmer-ted',
         }),
       });
       
-      const data = await response.json();
-      
-      if (data.success) {
-        setTransferStatus(`✅ Transfer complete! ${subsidyAmount} USDC sent from Uncle Sam to Farmer Ted`);
-      } else {
-        setTransferStatus(`❌ Transfer failed: ${data.error || 'Unknown error'}`);
+      if (contextResponse.ok) {
+        // Trigger the agent to send a proactive message
+        await fetch('http://localhost:8001/api/v1/agent/notify-drought', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            droughtLevel,
+            subsidyAmount: amount,
+            farmerId: 'farmer-ted',
+          }),
+        });
+        
+        if (droughtLevel === 'low') {
+          setTransferStatus('✅ Drought level submitted. Check the chat for agent response.');
+        } else if (droughtLevel === 'medium') {
+          setTransferStatus(`✅ Drought level submitted. You're eligible for ${amount} USDC. Check the chat!`);
+        } else {
+          setTransferStatus(`✅ Emergency drought level submitted. ${amount} USDC relief available. Check the chat!`);
+        }
       }
     } catch (error) {
-      console.error('Transfer error:', error);
-      setTransferStatus('❌ Transfer failed. Please check the connection.');
+      console.error('Error updating drought context:', error);
+      setTransferStatus('❌ Failed to submit drought level');
     } finally {
       setIsProcessing(false);
     }
+  };
+  
+  // Reset the form
+  const resetForm = () => {
+    setIsSubmitted(false);
+    setDroughtLevel('low');
+    setSubsidyAmount('0');
+    setTransferStatus('');
   };
 
   const getDroughtIcon = (level: 'low' | 'medium' | 'high') => {
@@ -153,13 +151,13 @@ const Demo: React.FC = () => {
                       </Box>
                     </Box>
                     
-                    <FormControl fullWidth>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
                       <InputLabel>Set Drought Level (Demo Control)</InputLabel>
                       <Select
                         value={droughtLevel}
                         label="Set Drought Level (Demo Control)"
                         onChange={(e) => handleDroughtLevelChange(e.target.value as 'low' | 'medium' | 'high')}
-                        disabled={isProcessing}
+                        disabled={isProcessing || isSubmitted}
                       >
                         <MenuItem value="low">
                           <Box display="flex" alignItems="center" gap={1}>
@@ -190,6 +188,12 @@ const Demo: React.FC = () => {
                         </MenuItem>
                       </Select>
                     </FormControl>
+                    
+                    {isSubmitted && (
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        Drought level has been submitted. The agent will contact you in the chat.
+                      </Alert>
+                    )}
                   </Paper>
                 </Grid>
                 
@@ -208,15 +212,28 @@ const Demo: React.FC = () => {
                       </Typography>
                     </Box>
                     
-                    <Button
-                      variant="contained"
-                      onClick={executeTransfer}
-                      disabled={isProcessing || subsidyAmount === '0'}
-                      fullWidth
-                      startIcon={isProcessing ? <CircularProgress size={20} /> : null}
-                    >
-                      {isProcessing ? 'Processing...' : `Execute Transfer (${subsidyAmount} USDC)`}
-                    </Button>
+                    {!isSubmitted ? (
+                      <Button
+                        variant="contained"
+                        onClick={submitDroughtLevel}
+                        disabled={isProcessing}
+                        fullWidth
+                        color="primary"
+                        size="large"
+                        startIcon={isProcessing ? <CircularProgress size={20} color="inherit" /> : null}
+                      >
+                        {isProcessing ? 'Submitting...' : 'Submit Drought Level'}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outlined"
+                        onClick={resetForm}
+                        fullWidth
+                        size="large"
+                      >
+                        Reset Demo
+                      </Button>
+                    )}
                     
                     {transferStatus && (
                       <Alert 
@@ -251,10 +268,10 @@ const Demo: React.FC = () => {
                   <strong>1. Set Drought Level:</strong> Use the dropdown to simulate different drought conditions.
                 </Typography>
                 <Typography variant="body1" paragraph>
-                  <strong>2. Automatic Context Update:</strong> The drought level is shared with the AI chatbot.
+                  <strong>2. Submit to System:</strong> Click "Submit Drought Level" to send the information to the AI agent.
                 </Typography>
                 <Typography variant="body1" paragraph>
-                  <strong>3. Ask the Chatbot:</strong> Go to the chat and ask "Am I eligible for any government subsidies today?"
+                  <strong>3. Agent Contact:</strong> The agent will proactively message you in the chat about available subsidies.
                 </Typography>
                 <Typography variant="body1" paragraph>
                   <strong>4. Subsidy Amounts:</strong>
@@ -265,10 +282,10 @@ const Demo: React.FC = () => {
                   <Typography variant="body2">• High drought: 0.5 USDC emergency relief</Typography>
                 </Box>
                 <Typography variant="body1" paragraph>
-                  <strong>5. Execute Transfer:</strong> The chatbot can ask if you want to execute the transfer. Say "yes" to proceed.
+                  <strong>5. Respond to Agent:</strong> The agent will ask if you want to execute the transfer. Reply "yes" or "no" in the chat.
                 </Typography>
                 <Typography variant="body1" paragraph>
-                  <strong>6. Crossmint Integration:</strong> Transfers are processed via Crossmint from Uncle Sam's wallet to Farmer Ted.
+                  <strong>6. Crossmint Integration:</strong> If you confirm, transfers are processed via Crossmint from Uncle Sam's wallet to Farmer Ted.
                 </Typography>
               </Box>
             </CardContent>
@@ -289,8 +306,8 @@ const Demo: React.FC = () => {
                   </Typography>
                   <Typography variant="body2" component="pre" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', p: 1, borderRadius: 1 }}>
 {`POST /api/v1/context/drought
-POST /api/v1/drought/execute-transfer
-POST /api/v1/agent/subsidy-check`}
+POST /api/v1/agent/notify-drought
+POST /api/v1/drought/execute-transfer`}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -298,9 +315,9 @@ POST /api/v1/agent/subsidy-check`}
                     Transfer Flow:
                   </Typography>
                   <Typography variant="body2">
-                    1. Frontend sets drought level<br/>
-                    2. MCP server updates context<br/>
-                    3. Chatbot checks eligibility<br/>
+                    1. User sets drought level<br/>
+                    2. Submits to MCP server<br/>
+                    3. Agent proactively messages user<br/>
                     4. User confirms in chat<br/>
                     5. Crossmint executes transfer<br/>
                     6. Confirmation sent to user

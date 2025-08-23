@@ -102,18 +102,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <ListItem
                 key={item.text}
                 onClick={() => navigate(item.path)}
-                selected={location.pathname === item.path}
                 sx={{
                   m: 1,
                   borderRadius: 2,
-                  '&.Mui-selected': {
-                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
-                    '&:hover': {
-                      backgroundColor: 'rgba(46, 125, 50, 0.2)',
-                    }
-                  },
+                  backgroundColor: location.pathname === item.path ? 'rgba(46, 125, 50, 0.1)' : 'transparent',
                   '&:hover': {
-                    backgroundColor: 'rgba(46, 125, 50, 0.05)',
+                    backgroundColor: location.pathname === item.path ? 'rgba(46, 125, 50, 0.2)' : 'rgba(46, 125, 50, 0.05)',
                   }
                 }}
               >
