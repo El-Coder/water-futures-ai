@@ -106,26 +106,26 @@ EOF
 start_mcp_servers() {
     echo -e "${BLUE}Starting MCP servers...${NC}"
     
-    # Install Smithery CLI if not installed
-    if ! command -v smithery &> /dev/null; then
-        echo "Installing Smithery CLI..."
-        npm install -g @smithery/cli
-    fi
-    
-    # Start trading agent MCP server
-    cd mcp-servers/trading-agent
+    cd mcp-servers
     
     if [ ! -d "node_modules" ]; then
         echo "Installing MCP server dependencies..."
         npm install
     fi
     
-    echo -e "${GREEN}Starting Trading Agent MCP Server${NC}"
-    node index.js &
-    MCP_PID=$!
-    echo "MCP Server PID: $MCP_PID"
+    # Start MCP HTTP wrapper on port 8080
+    echo -e "${GREEN}Starting MCP HTTP Wrapper on port 8080${NC}"
+    PORT=8080 node http-wrapper.js &
+    MCP_WRAPPER_PID=$!
+    echo "MCP Wrapper PID: $MCP_WRAPPER_PID"
     
-    cd ../..
+    # Start Chat service on port 8001
+    echo -e "${GREEN}Starting Chat Service on port 8001${NC}"
+    CHAT_PORT=8001 BACKEND_URL=http://localhost:8000 node chat-wrapper.js &
+    CHAT_PID=$!
+    echo "Chat Service PID: $CHAT_PID"
+    
+    cd ..
 }
 
 # Cleanup function
@@ -144,10 +144,16 @@ cleanup() {
         echo "Stopped frontend"
     fi
     
-    # Kill MCP server
-    if [ ! -z "$MCP_PID" ]; then
-        kill $MCP_PID 2>/dev/null
-        echo "Stopped MCP server"
+    # Kill MCP wrapper
+    if [ ! -z "$MCP_WRAPPER_PID" ]; then
+        kill $MCP_WRAPPER_PID 2>/dev/null
+        echo "Stopped MCP wrapper"
+    fi
+    
+    # Kill Chat service
+    if [ ! -z "$CHAT_PID" ]; then
+        kill $CHAT_PID 2>/dev/null
+        echo "Stopped Chat service"
     fi
     
     echo -e "${GREEN}All services stopped${NC}"
@@ -178,7 +184,8 @@ main() {
     echo "🌐 Frontend: http://localhost:5173"
     echo "🔧 Backend API: http://localhost:8000"
     echo "📚 API Docs: http://localhost:8000/docs"
-    echo "🤖 MCP Server: Running on default port"
+    echo "🤖 Chat Service: http://localhost:8001"
+    echo "🔌 MCP Wrapper: http://localhost:8080"
     echo ""
     echo "Press Ctrl+C to stop all services"
     echo ""

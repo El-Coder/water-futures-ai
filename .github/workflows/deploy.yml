@@ -1,0 +1,77 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: water-futures-ai
+  REGION: us-central1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ env.PROJECT_ID }}
+        export_default_credentials: true
+    
+    - name: Configure Docker
+      run: |
+        gcloud auth configure-docker
+    
+    - name: Build and Push Backend
+      run: |
+        docker build -t gcr.io/${{ env.PROJECT_ID }}/water-futures-backend ./backend
+        docker push gcr.io/${{ env.PROJECT_ID }}/water-futures-backend
+    
+    - name: Deploy Backend to Cloud Run
+      run: |
+        gcloud run deploy water-futures-backend \
+          --image gcr.io/${{ env.PROJECT_ID }}/water-futures-backend \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --set-env-vars "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},ALPACA_API_KEY=${{ secrets.ALPACA_API_KEY }},ALPACA_SECRET_KEY=${{ secrets.ALPACA_SECRET_KEY }},CROSSMINT_API_KEY=${{ secrets.CROSSMINT_API_KEY }},UNCLE_SAM_WALLET_ADDRESS=${{ secrets.UNCLE_SAM_WALLET_ADDRESS }}" \
+          --memory 2Gi \
+          --cpu 2 \
+          --max-instances 10 \
+          --min-instances 1
+    
+    - name: Build and Push MCP Servers
+      run: |
+        docker build -t gcr.io/${{ env.PROJECT_ID }}/water-futures-mcp ./mcp-servers
+        docker push gcr.io/${{ env.PROJECT_ID }}/water-futures-mcp
+    
+    - name: Get Backend URL
+      id: backend-url
+      run: |
+        BACKEND_URL=$(gcloud run services describe water-futures-backend --region ${{ env.REGION }} --format 'value(status.url)')
+        echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
+    
+    - name: Deploy MCP Servers to Cloud Run
+      run: |
+        gcloud run deploy water-futures-mcp \
+          --image gcr.io/${{ env.PROJECT_ID }}/water-futures-mcp \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --set-env-vars "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},ALPACA_API_KEY=${{ secrets.ALPACA_API_KEY }},ALPACA_SECRET_KEY=${{ secrets.ALPACA_SECRET_KEY }},CROSSMINT_API_KEY=${{ secrets.CROSSMINT_API_KEY }},BACKEND_URL=${{ steps.backend-url.outputs.url }}" \
+          --memory 1Gi \
+          --cpu 1 \
+          --max-instances 10 \
+          --min-instances 1
+    
+    - name: Output Service URLs
+      run: |
+        echo "Backend URL: $(gcloud run services describe water-futures-backend --region ${{ env.REGION }} --format 'value(status.url)')"
+        echo "MCP Server URL: $(gcloud run services describe water-futures-mcp --region ${{ env.REGION }} --format 'value(status.url)')"

@@ -257,6 +257,66 @@ class NewsService:
             "status": "active",
             "message": f"Alert created for keywords: {', '.join(keywords)}"
         }
+    
+    async def fetch_latest_articles(
+        self,
+        limit: int = 20,
+        california_only: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch latest articles (alias for get_latest_news)
+        """
+        return await self.get_latest_news(limit=limit)
+    
+    async def generate_insights(self) -> Dict[str, Any]:
+        """
+        Generate market insights (alias for get_news_summary)
+        """
+        return await self.get_news_summary()
+    
+    async def get_water_events(
+        self,
+        active_only: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+        Get water-related events
+        """
+        events = [
+            {
+                "id": "EVT-001",
+                "title": "California Drought Emergency",
+                "description": "Statewide drought emergency declared",
+                "severity": 4,
+                "active": True,
+                "start_date": datetime.now().isoformat(),
+                "affected_regions": ["Central Valley", "Southern California"]
+            },
+            {
+                "id": "EVT-002",
+                "title": "Federal Relief Program",
+                "description": "$2B drought relief program announced",
+                "severity": 2,
+                "active": True,
+                "start_date": datetime.now().isoformat(),
+                "affected_regions": ["All California"]
+            }
+        ]
+        
+        if active_only:
+            return [e for e in events if e["active"]]
+        return events
+    
+    async def refresh_feed(self) -> Dict[str, Any]:
+        """
+        Refresh the news feed
+        """
+        # In production, this would fetch new articles
+        self._generate_mock_news()
+        return {
+            "status": "success",
+            "articles_updated": len(self.news_cache),
+            "timestamp": datetime.now().isoformat()
+        }
 
 # Singleton instance
 news_service = NewsService()

@@ -1,21 +1,11 @@
 steps:
-  # Build backend Docker image
+  # Build and deploy backend
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/water-futures-ai/backend:$COMMIT_SHA', './backend']
-  
-  # Build frontend Docker image
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/water-futures-backend', './backend']
+    
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/water-futures-ai/frontend:$COMMIT_SHA', './frontend']
-  
-  # Push backend image to Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/water-futures-ai/backend:$COMMIT_SHA']
-  
-  # Push frontend image to Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/water-futures-ai/frontend:$COMMIT_SHA']
-  
-  # Deploy backend to Cloud Run
+    args: ['push', 'gcr.io/$PROJECT_ID/water-futures-backend']
+    
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -23,44 +13,59 @@ steps:
       - 'deploy'
       - 'water-futures-backend'
       - '--image'
-      - 'gcr.io/water-futures-ai/backend:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/water-futures-backend'
       - '--region'
       - 'us-central1'
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
-      - '--port'
-      - '8000'
-      - '--memory'
-      - '1Gi'
-      - '--cpu'
-      - '1'
       - '--set-env-vars'
-      - 'GCP_PROJECT_ID=water-futures-ai'
-  
-  # Deploy frontend to Cloud Run
+      - 'ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},ALPACA_API_KEY=${_ALPACA_API_KEY},ALPACA_SECRET_KEY=${_ALPACA_SECRET_KEY},CROSSMINT_API_KEY=${_CROSSMINT_API_KEY},UNCLE_SAM_WALLET_ADDRESS=${_UNCLE_SAM_WALLET_ADDRESS}'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--max-instances'
+      - '10'
+      - '--min-instances'
+      - '1'
+
+  # Build and deploy MCP servers
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/water-futures-mcp', './mcp-servers']
+    
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/water-futures-mcp']
+    
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       - 'run'
       - 'deploy'
-      - 'water-futures-frontend'
+      - 'water-futures-mcp'
       - '--image'
-      - 'gcr.io/water-futures-ai/frontend:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/water-futures-mcp'
       - '--region'
       - 'us-central1'
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
-      - '--port'
-      - '80'
+      - '--set-env-vars'
+      - 'ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},ALPACA_API_KEY=${_ALPACA_API_KEY},ALPACA_SECRET_KEY=${_ALPACA_SECRET_KEY},CROSSMINT_API_KEY=${_CROSSMINT_API_KEY},BACKEND_URL=https://water-futures-backend-xxxxx-uc.a.run.app'
       - '--memory'
-      - '512Mi'
+      - '1Gi'
       - '--cpu'
       - '1'
+      - '--max-instances'
+      - '10'
+      - '--min-instances'
+      - '1'
 
-images:
-  - 'gcr.io/water-futures-ai/backend:$COMMIT_SHA'
-  - 'gcr.io/water-futures-ai/frontend:$COMMIT_SHA'
+substitutions:
+  _ANTHROPIC_API_KEY: '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'
+  _ALPACA_API_KEY: 'PKBGCEN19LBO7XSXRV0P'
+  _ALPACA_SECRET_KEY: 'c4Mbdt3J0cLKPaeUJecD6Db1sTsmiNudz0QdfyaP'
+  _CROSSMINT_API_KEY: 'sk_staging_9ymj6pzDVzTXAJxEHx2Eiaudh7Bv9tAZYkbC7oJyXxQUupx3fi4pQyNmShEZ7BMDSkT2DGw8EyxcPUvqLyVoJTP3DQQ2JQya8iB7eTK95tWKHDK9xMGapfbgoYBvY8ettfPjCw2Sm9kxEMxEe3iWAvWEPrW3PuQUXAzjppFbauu5uHNK1rDdiQ2XoKecGbMre99jNGmdVQkabJ84QYPbzMBj'
+  _UNCLE_SAM_WALLET_ADDRESS: '0x732278e9D7A02a746dcF38108dA30647CDb91217'
 
 timeout: '1200s'
