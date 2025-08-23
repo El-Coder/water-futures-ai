@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -26,6 +26,8 @@ import {
   AttachMoney,
   Agriculture,
 } from '@mui/icons-material';
+import axios from 'axios';
+import { API_CONFIG } from '../config/api';
 
 interface Transaction {
   id: string;
@@ -47,7 +49,9 @@ interface Transaction {
 }
 
 const Account: React.FC = () => {
-  const [balance] = useState(125000);
+  const [balance, setBalance] = useState(0);
+  const [positions, setPositions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [droughtLevel, setDroughtLevel] = useState<'low' | 'medium' | 'high'>('low');
   const [transferStatus, setTransferStatus] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -141,6 +145,46 @@ const Account: React.FC = () => {
       },
     },
   ]);
+
+  useEffect(() => {
+    fetchAccountData();
+    fetchPositions();
+
+    // Refresh on tab visibility change
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchAccountData();
+        fetchPositions();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  const fetchAccountData = async () => {
+    try {
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/trading/account`);
+      setBalance(response.data.cash || response.data.portfolio_value || 0);
+    } catch (error) {
+      console.error('Error fetching account data:', error);
+      // Fallback to default
+      setBalance(125000);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchPositions = async () => {
+    try {
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/trading/positions`);
+      setPositions(response.data || []);
+    } catch (error) {
+      console.error('Error fetching positions:', error);
+    }
+  };
 
   const getTransactionIcon = (type: string) => {
     switch (type) {

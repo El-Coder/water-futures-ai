@@ -91,17 +91,28 @@ jobs:
     
     - name: Deploy MCP HTTP Wrapper to Cloud Run
       run: |
+        # Create environment variables file to handle special characters
+        cat > mcp_env_vars.yaml << EOF
+        ANTHROPIC_API_KEY: "${{ secrets.ANTHROPIC_API_KEY }}"
+        ALPACA_API_KEY: "${{ secrets.ALPACA_API_KEY }}"
+        ALPACA_SECRET_KEY: "${{ secrets.ALPACA_SECRET_KEY }}"
+        CROSSMINT_API_KEY: "${{ secrets.CROSSMINT_API_KEY }}"
+        BACKEND_URL: "${{ steps.backend-url.outputs.url }}"
+        EOF
+        
         gcloud run deploy water-futures-mcp \
           --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/mcp:latest \
           --region ${{ env.REGION }} \
           --platform managed \
           --allow-unauthenticated \
-          --set-env-vars "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},ALPACA_API_KEY=${{ secrets.ALPACA_API_KEY }},ALPACA_SECRET_KEY=${{ secrets.ALPACA_SECRET_KEY }},CROSSMINT_API_KEY=${{ secrets.CROSSMINT_API_KEY }},BACKEND_URL=${{ steps.backend-url.outputs.url }}" \
+          --env-vars-file mcp_env_vars.yaml \
           --memory 1Gi \
           --cpu 1 \
           --max-instances 10 \
           --min-instances 1 \
           --port 8080
+        
+        rm mcp_env_vars.yaml
     
     # Deploy Chat Service
     - name: Build and Push Chat Service
@@ -111,17 +122,28 @@ jobs:
     
     - name: Deploy Chat Service to Cloud Run
       run: |
+        # Create environment variables file to handle special characters
+        cat > chat_env_vars.yaml << EOF
+        ANTHROPIC_API_KEY: "${{ secrets.ANTHROPIC_API_KEY }}"
+        ALPACA_API_KEY: "${{ secrets.ALPACA_API_KEY }}"
+        ALPACA_SECRET_KEY: "${{ secrets.ALPACA_SECRET_KEY }}"
+        CROSSMINT_API_KEY: "${{ secrets.CROSSMINT_API_KEY }}"
+        BACKEND_URL: "${{ steps.backend-url.outputs.url }}"
+        EOF
+        
         gcloud run deploy water-futures-chat \
           --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/water-futures/chat:latest \
           --region ${{ env.REGION }} \
           --platform managed \
           --allow-unauthenticated \
-          --set-env-vars "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},ALPACA_API_KEY=${{ secrets.ALPACA_API_KEY }},ALPACA_SECRET_KEY=${{ secrets.ALPACA_SECRET_KEY }},CROSSMINT_API_KEY=${{ secrets.CROSSMINT_API_KEY }},BACKEND_URL=${{ steps.backend-url.outputs.url }}" \
+          --env-vars-file chat_env_vars.yaml \
           --memory 1Gi \
           --cpu 1 \
           --max-instances 10 \
           --min-instances 1 \
           --port 8080
+        
+        rm chat_env_vars.yaml
     
     # Get Service URLs
     - name: Get Service URLs
