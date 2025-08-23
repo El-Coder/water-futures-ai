@@ -48,8 +48,9 @@ frontend/dist-ssr/
 *.local
 
 # IDE
-.vscode/
 .idea/
+# Keep VS Code settings for proper Python env configuration
+# .vscode/
 *.swp
 *.swo
 *~

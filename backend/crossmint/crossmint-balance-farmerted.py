@@ -10,7 +10,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-url = "https://staging.crossmint.com/api/2025-06-09/wallets/email:farmerted@example.com:evm/balances"
+url = "https://staging.crossmint.com/api/2025-06-09/wallets/userId:farmerted:evm/balances"
 
 querystring = {"tokens":"usdc","chains":"ethereum-sepolia"}
 

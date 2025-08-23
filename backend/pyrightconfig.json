@@ -1,0 +1,27 @@
+{
+    "include": [
+        "."
+    ],
+    "exclude": [
+        "venv",
+        "__pycache__",
+        "**/__pycache__"
+    ],
+    "venvPath": ".",
+    "venv": "venv",
+    "pythonVersion": "3.10",
+    "extraPaths": [
+        ".",
+        "services",
+        "models",
+        "api",
+        "crossmint"
+    ],
+    "typeCheckingMode": "basic",
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false,
+    "reportOptionalMemberAccess": false,
+    "reportOptionalCall": false,
+    "reportOptionalSubscript": false,
+    "reportGeneralTypeIssues": false
+}

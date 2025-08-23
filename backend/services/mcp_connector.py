@@ -7,6 +7,10 @@ import json
 from typing import Dict, Any, Optional
 import os
 from anthropic import Anthropic
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class MCPConnector:
     def __init__(self):
