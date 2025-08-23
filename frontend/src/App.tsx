@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import Account from './pages/Account';
 import Forecast from './pages/Forecast';
 import News from './pages/News';
+import Demo from './pages/Demo';
 
 const theme = createTheme({
   palette: {
@@ -54,6 +55,7 @@ function App() {
             <Route path="/" element={<Account />} />
             <Route path="/forecast" element={<Forecast />} />
             <Route path="/news" element={<News />} />
+            <Route path="/demo" element={<Demo />} />
           </Routes>
         </Layout>
       </Router>

@@ -33,6 +33,7 @@ const menuItems = [
   { text: 'Account & Transactions', icon: <AccountBalanceIcon />, path: '/' },
   { text: 'Water Market Forecast', icon: <WaterDropIcon />, path: '/forecast' },
   { text: 'Agricultural News', icon: <AgricultureIcon />, path: '/news' },
+  { text: 'Drought Demo', icon: <OpacityIcon />, path: '/demo' },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
