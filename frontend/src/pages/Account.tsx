@@ -432,10 +432,10 @@ const Account: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
-                    ETH Balance (Sepolia)
+                    USDC Balance (Sepolia)
                   </Typography>
                   <Typography variant="h5">
-                    {ethBalance} ETH
+                    ${ethBalance} USDC
                   </Typography>
                 </CardContent>
               </Card>
