@@ -48,8 +48,13 @@ class Settings(BaseSettings):
     SMITHERY_API_KEY: str = os.getenv("SMITHERY_API_KEY", "")
     MCP_SERVER_URL: str = os.getenv("MCP_SERVER_URL", "http://localhost:5000")
     
+    # Crossmint
+    CROSSMINT_API_KEY: str = os.getenv("CROSSMINT_API_KEY", "")
+    UNCLE_SAM_WALLET_ADDRESS: str = os.getenv("UNCLE_SAM_WALLET_ADDRESS", "")
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "allow"  # Allow extra fields from .env
 
 settings = Settings()

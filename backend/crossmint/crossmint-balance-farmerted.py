@@ -1,11 +1,15 @@
 import requests
+import os
+from dotenv import load_dotenv
 
-url = "https://staging.crossmint.com/api/2025-06-09/wallets/user:farmerted:evm/balances"
+load_dotenv("../.env")
+
+url = "https://staging.crossmint.com/api/2025-06-09/wallets/email:farmerted@example.com:evm/balances"
 
 querystring = {"tokens":"usdc","chains":"ethereum-sepolia"}
 
-headers = {"X-API-KEY": "<x-api-key>"}
+headers = {"X-API-KEY": os.getenv("CROSSMINT_API_KEY")}
 
-response = requests.post(url, json=payload, headers=headers)
+response = requests.get(url, params=querystring, headers=headers)
 
 print(response.json())

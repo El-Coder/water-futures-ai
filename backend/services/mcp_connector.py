@@ -10,9 +10,12 @@ from anthropic import Anthropic
 
 class MCPConnector:
     def __init__(self):
-        self.anthropic = Anthropic(
-            api_key=os.getenv("ANTHROPIC_API_KEY")
-        )
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if api_key:
+            self.anthropic = Anthropic(api_key=api_key)
+        else:
+            self.anthropic = None
+            print("⚠️  Anthropic API key not found. Set ANTHROPIC_API_KEY environment variable.")
         
         # MCP Server endpoints
         self.trading_agent_url = os.getenv("TRADING_AGENT_URL", "http://localhost:5001")
@@ -45,6 +48,10 @@ class MCPConnector:
         """
         Use Claude to understand the farmer's intent
         """
+        if not self.anthropic:
+            # Fallback to simple keyword-based intent detection
+            return self._simple_intent_detection(message)
+        
         try:
             response = self.anthropic.messages.create(
                 model="claude-3-haiku-20240307",  # Fast model for intent classification
@@ -112,13 +119,49 @@ class MCPConnector:
             
         except Exception as e:
             print(f"Intent analysis error: {e}")
-            return {"primary": "GENERAL_HELP", "error": str(e)}
+            return self._simple_intent_detection(message)
+    
+    def _simple_intent_detection(self, message: str) -> Dict[str, Any]:
+        """Simple keyword-based intent detection as fallback"""
+        message_lower = message.lower()
+        intent = {
+            "primary": "GENERAL_HELP",
+            "action": None,
+            "quantity": None,
+            "contract_code": "NQH25",
+            "confidence": 0.5
+        }
+        
+        if "buy" in message_lower or "purchase" in message_lower:
+            intent["primary"] = "TRADE_EXECUTE"
+            intent["action"] = "BUY"
+            for word in message.split():
+                if word.isdigit():
+                    intent["quantity"] = int(word)
+                    break
+        elif "sell" in message_lower:
+            intent["primary"] = "TRADE_EXECUTE"
+            intent["action"] = "SELL"
+        elif "subsidy" in message_lower or "government" in message_lower:
+            if "claim" in message_lower or "process" in message_lower:
+                intent["primary"] = "SUBSIDY_CLAIM"
+            else:
+                intent["primary"] = "SUBSIDY_INQUIRY"
+        elif "market" in message_lower or "forecast" in message_lower:
+            intent["primary"] = "MARKET_ANALYSIS"
+        elif "trade" in message_lower or "futures" in message_lower:
+            intent["primary"] = "TRADE_INQUIRY"
+        
+        return intent
     
     async def _handle_chat_mode(self, message: str, intent: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle message in chat mode (safe, no execution)
         """
-        # Use Claude for conversational response
+        # Use Claude for conversational response if available
+        if not self.anthropic:
+            return self._fallback_chat_response(message, intent)
+        
         try:
             response = self.anthropic.messages.create(
                 model="claude-3-opus-20240229",
@@ -167,11 +210,37 @@ class MCPConnector:
             }
             
         except Exception as e:
-            return {
-                "response": "I can help you understand water futures and subsidies. What would you like to know?",
-                "error": str(e),
-                "mode": "chat"
-            }
+            return self._fallback_chat_response(message, intent)
+    
+    def _fallback_chat_response(self, message: str, intent: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback response when Claude is not available"""
+        suggested_actions = []
+        
+        if intent["primary"] == "TRADE_EXECUTE":
+            suggested_actions.append({
+                "type": "trade",
+                "action": f"{intent['action']} water futures",
+                "quantity": intent.get("quantity", 5),
+                "requiresAgentMode": True
+            })
+            response_text = "To execute trades, please enable Agent Mode. I can help you buy or sell water futures contracts."
+        elif intent["primary"] == "SUBSIDY_CLAIM":
+            suggested_actions.append({
+                "type": "subsidy",
+                "action": "Claim drought relief subsidy",
+                "estimatedAmount": 15000,
+                "requiresAgentMode": True
+            })
+            response_text = "Government subsidies are available for drought relief. Enable Agent Mode to process your claim."
+        else:
+            response_text = "I can help you understand water futures and subsidies. What would you like to know?"
+        
+        return {
+            "response": response_text,
+            "suggestedActions": suggested_actions,
+            "mode": "chat",
+            "intent": intent
+        }
     
     async def _handle_agent_mode(self, message: str, intent: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -329,6 +398,13 @@ class MCPConnector:
         """
         General conversation in agent mode
         """
+        if not self.anthropic:
+            return {
+                "response": "I'm your agent assistant. I can execute trades and process subsidies. How can I help?",
+                "mode": "agent",
+                "isAgentAction": False
+            }
+        
         try:
             response = self.anthropic.messages.create(
                 model="claude-3-opus-20240229",
