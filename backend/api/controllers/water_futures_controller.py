@@ -8,10 +8,10 @@ class WaterFuturesController:
         self.service = WaterFuturesService()
     
     async def get_current_prices(self):
-        return await self.service.fetch_current_prices()
+        return await self.service.get_current_prices()
     
     async def get_nasdaq_water_index(self):
-        return await self.service.fetch_nasdaq_water_index()
+        return await self.service.get_nasdaq_water_index()
     
     async def get_historical_prices(
         self,

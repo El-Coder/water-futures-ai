@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -12,6 +12,13 @@ import {
   Chip,
   Divider,
   Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert,
+  Button,
+  CircularProgress,
 } from '@mui/material';
 import {
   AccountBalance as AccountBalanceIcon,
@@ -41,6 +48,9 @@ interface Transaction {
 
 const Account: React.FC = () => {
   const [balance] = useState(125000);
+  const [droughtLevel, setDroughtLevel] = useState<'low' | 'medium' | 'high'>('low');
+  const [transferStatus, setTransferStatus] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [transactions] = useState<Transaction[]>([
     {
       id: '1',
@@ -173,11 +183,158 @@ const Account: React.FC = () => {
     .filter(t => t.type === 'trade')
     .reduce((sum, t) => sum + t.amount, 0);
 
+  // Handle drought level change and trigger transfer
+  const handleDroughtLevelChange = async (newLevel: 'low' | 'medium' | 'high') => {
+    setDroughtLevel(newLevel);
+    
+    if (newLevel === 'high') {
+      setIsProcessing(true);
+      setTransferStatus('Processing drought relief transfer...');
+      
+      try {
+        // Call MCP server to process transfer
+        const response = await fetch('http://localhost:8001/api/v1/drought/transfer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            droughtLevel: newLevel,
+            farmerId: 'farmer-ted',
+            amount: '1', // 1 token
+          }),
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          setTransferStatus('✅ Drought relief transfer completed! 1 USDC token sent from Uncle Sam.');
+          
+          // Update chat context
+          await fetch('http://localhost:8001/api/v1/context/update', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: 'farmer-ted',
+              context: {
+                droughtLevel: newLevel,
+                recentTransfer: {
+                  amount: '1 USDC',
+                  timestamp: new Date().toISOString(),
+                  reason: 'Drought severity: HIGH',
+                },
+                eligibleForSubsidies: true,
+              },
+            }),
+          });
+        } else {
+          setTransferStatus('⚠️ Transfer failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Transfer error:', error);
+        setTransferStatus('❌ Transfer failed. Please try again.');
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      // Update context for non-high drought levels
+      await fetch('http://localhost:8001/api/v1/context/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: 'farmer-ted',
+          context: {
+            droughtLevel: newLevel,
+            eligibleForSubsidies: newLevel === 'medium',
+          },
+        }),
+      });
+      
+      setTransferStatus('');
+    }
+  };
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
         Account Balance & Transactions
       </Typography>
+      
+      {/* Drought Index Control */}
+      <Card sx={{ mb: 3, bgcolor: 'background.paper' }}>
+        <CardContent>
+          <Grid container spacing={2} alignItems="center">
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Typography variant="h6" gutterBottom>
+                Drought Index Monitor
+              </Typography>
+              <FormControl fullWidth>
+                <InputLabel>Current Drought Level</InputLabel>
+                <Select
+                  value={droughtLevel}
+                  label="Current Drought Level"
+                  onChange={(e) => handleDroughtLevelChange(e.target.value as 'low' | 'medium' | 'high')}
+                  disabled={isProcessing}
+                >
+                  <MenuItem value="low">
+                    <Box display="flex" alignItems="center">
+                      <Box width={12} height={12} bgcolor="green" borderRadius="50%" mr={1} />
+                      Low - Normal conditions
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="medium">
+                    <Box display="flex" alignItems="center">
+                      <Box width={12} height={12} bgcolor="orange" borderRadius="50%" mr={1} />
+                      Medium - Moderate drought
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="high">
+                    <Box display="flex" alignItems="center">
+                      <Box width={12} height={12} bgcolor="red" borderRadius="50%" mr={1} />
+                      High - Severe drought (triggers relief)
+                    </Box>
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, md: 8 }}>
+              {isProcessing && (
+                <Box display="flex" alignItems="center" gap={2}>
+                  <CircularProgress size={20} />
+                  <Typography>Processing transfer...</Typography>
+                </Box>
+              )}
+              {transferStatus && !isProcessing && (
+                <Alert 
+                  severity={transferStatus.includes('✅') ? 'success' : transferStatus.includes('⚠️') ? 'warning' : 'error'}
+                  onClose={() => setTransferStatus('')}
+                >
+                  {transferStatus}
+                </Alert>
+              )}
+              {droughtLevel === 'high' && !isProcessing && !transferStatus && (
+                <Alert severity="info">
+                  Severe drought detected! Automatic relief transfer will be initiated.
+                </Alert>
+              )}
+              {droughtLevel === 'medium' && (
+                <Alert severity="warning">
+                  Moderate drought conditions. You may be eligible for partial subsidies.
+                </Alert>
+              )}
+              {droughtLevel === 'low' && (
+                <Alert severity="success">
+                  Normal conditions. No drought relief needed.
+                </Alert>
+              )}
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
       <Grid container spacing={3}>
         {/* Balance Overview */}
