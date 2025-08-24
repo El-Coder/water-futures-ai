@@ -180,9 +180,18 @@ const Trading: React.FC = () => {
 
   const fetchBalance = async () => {
     try {
+      // First get the regular balance from MCP endpoint
       const response = await axios.get(`${API_CONFIG.API_URL}/api/mcp/farmer/balance/farmer-ted`);
-      // Transform the backend response to match the frontend interface
       const data = response.data;
+      
+      // Then get the REAL Crossmint balance from the direct endpoint
+      let crossmintBalance = 0;
+      try {
+        const crossmintResponse = await axios.get(`${API_CONFIG.API_URL}/api/v1/crossmint/balance/farmerted`);
+        crossmintBalance = crossmintResponse.data.balance || 0;
+      } catch (crossmintError) {
+        console.error('Error fetching Crossmint balance:', crossmintError);
+      }
       setBalance({
         tradingAccount: data.tradingAccount || {
           cash: 0,
@@ -194,24 +203,18 @@ const Trading: React.FC = () => {
           message: "Trading account active"
         },
         subsidyAccounts: {
-          totalSubsidies: data.subsidyAccounts?.totalSubsidies || 0,
-          totalAvailable: data.subsidyAccounts?.totalAvailable || 0,
-          accounts: data.subsidyAccounts?.drought_relief ? {
+          totalSubsidies: crossmintBalance,
+          totalAvailable: crossmintBalance,
+          accounts: {
             drought_relief: {
-              amount: data.subsidyAccounts.drought_relief.balance || 0,
-              available: data.subsidyAccounts.drought_relief.available || 0,
+              amount: crossmintBalance,
+              available: crossmintBalance,
               used: 0,
-              restrictions: data.subsidyAccounts.drought_relief.restrictions || ""
-            },
-            water_conservation: {
-              amount: data.subsidyAccounts.water_conservation?.balance || 0,
-              available: data.subsidyAccounts.water_conservation?.available || 0,
-              used: 0,
-              restrictions: data.subsidyAccounts.water_conservation?.restrictions || ""
+              restrictions: "Government subsidy funds via Crossmint (USDC on Sepolia)"
             }
-          } : {},
+          },
           canUseForTrading: false,
-          message: data.subsidyAccounts?.cannotUseMessage || "Government subsidies cannot be used for speculative trading"
+          message: "Government subsidies cannot be used for speculative trading"
         },
         ethBalance: data.ethBalance,
         totalBalance: data.totalBalance || {
@@ -223,7 +226,15 @@ const Trading: React.FC = () => {
       });
     } catch (error) {
       console.error('Error fetching balance:', error);
-      // Set default values on error
+      // Set default values on error but still try to show Crossmint balance
+      let crossmintBalance = 0;
+      try {
+        const crossmintResponse = await axios.get(`${API_CONFIG.API_URL}/api/v1/crossmint/balance/farmerted`);
+        crossmintBalance = crossmintResponse.data.balance || 0;
+      } catch (e) {
+        console.error('Error fetching Crossmint balance:', e);
+      }
+      
       setBalance({
         tradingAccount: {
           cash: 0,
@@ -235,16 +246,23 @@ const Trading: React.FC = () => {
           message: "Unable to fetch trading account data"
         },
         subsidyAccounts: {
-          totalSubsidies: 0,
-          totalAvailable: 0,
-          accounts: {},
+          totalSubsidies: crossmintBalance,
+          totalAvailable: crossmintBalance,
+          accounts: {
+            drought_relief: {
+              amount: crossmintBalance,
+              available: crossmintBalance,
+              used: 0,
+              restrictions: "Government subsidy funds via Crossmint (USDC on Sepolia)"
+            }
+          },
           canUseForTrading: false,
           message: "Government subsidies cannot be used for speculative trading"
         },
         totalBalance: {
-          allFunds: 0,
+          allFunds: crossmintBalance,
           availableForTrading: 0,
-          earmarkedForSpecificUse: 0
+          earmarkedForSpecificUse: crossmintBalance
         }
       });
     } finally {

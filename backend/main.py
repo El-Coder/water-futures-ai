@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 
 # Import routes
-from api.routes import water_futures, forecasts, trading, news, embeddings, mcp
+from api.routes import water_futures, forecasts, trading, news, embeddings, mcp, crossmint_direct
 
 # Import services
 from config.settings import settings
@@ -70,6 +70,7 @@ app.include_router(trading.router, prefix="/api/v1/trading", tags=["Trading"])
 app.include_router(news.router, prefix="/api/v1/news", tags=["News"])
 app.include_router(embeddings.router, prefix="/api/v1/embeddings", tags=["Embeddings"])
 app.include_router(mcp.router, prefix="/api/mcp", tags=["MCP"])
+app.include_router(crossmint_direct.router, prefix="/api/v1/crossmint", tags=["Crossmint Direct"])
 
 @app.get("/")
 async def root():
