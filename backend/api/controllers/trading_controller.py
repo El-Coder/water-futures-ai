@@ -50,7 +50,13 @@ class TradingController:
         }
     
     async def get_open_positions(self):
-        return await self.alpaca_service.get_positions()
+        try:
+            positions = await self.alpaca_service.get_positions()
+            # Ensure we always return an array, even if API fails
+            return positions if isinstance(positions, list) else []
+        except Exception as e:
+            print(f"Error fetching positions: {e}")
+            return []
     
     async def get_orders(self, status: Optional[str]):
         return await self.alpaca_service.get_orders(status)

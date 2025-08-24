@@ -188,9 +188,12 @@ const Account: React.FC = () => {
   const fetchPositions = async () => {
     try {
       const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/trading/positions`);
-      setPositions(response.data || []);
+      // Ensure positions is always an array
+      const positionsData = response.data;
+      setPositions(Array.isArray(positionsData) ? positionsData : []);
     } catch (error) {
       console.error('Error fetching positions:', error);
+      setPositions([]); // Set empty array on error
     }
   };
 

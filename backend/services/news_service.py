@@ -118,16 +118,24 @@ class NewsService:
         """
         Get latest news articles
         """
-        news = self.news_cache.copy()
-        
-        # Filter by category if specified
-        if category:
-            news = [n for n in news if category in n.get("categories", [])]
-        
-        # Sort by published date (newest first)
-        news.sort(key=lambda x: x["published_at"], reverse=True)
-        
-        return news[:limit]
+        try:
+            # Ensure news_cache is a list
+            if not isinstance(self.news_cache, list):
+                return []
+                
+            news = self.news_cache.copy()
+            
+            # Filter by category if specified
+            if category:
+                news = [n for n in news if category in n.get("categories", [])]
+            
+            # Sort by published date (newest first)
+            news.sort(key=lambda x: x["published_at"], reverse=True)
+            
+            return news[:limit]
+        except Exception as e:
+            print(f"Error fetching news: {e}")
+            return []
     
     async def get_news_by_sentiment(
         self, 

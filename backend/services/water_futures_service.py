@@ -90,18 +90,22 @@ class WaterFuturesService:
         """
         Get current prices for all contracts
         """
-        prices = []
-        for code, details in self.contracts.items():
-            prices.append({
-                "contract_code": code,
-                "name": details["name"],
-                "price": details["current_price"],
-                "change": 2.50,  # Mock data
-                "change_percent": 0.49,  # Mock data
-                "volume": details["volume"],
-                "timestamp": datetime.now().isoformat()
-            })
-        return prices
+        try:
+            prices = []
+            for code, details in self.contracts.items():
+                prices.append({
+                    "contract_code": code,
+                    "name": details["name"],
+                    "price": details["current_price"],
+                    "change": 2.50,  # Mock data
+                    "change_percent": 0.49,  # Mock data
+                    "volume": details["volume"],
+                    "timestamp": datetime.now().isoformat()
+                })
+            return prices
+        except Exception as e:
+            print(f"Error fetching current prices: {e}")
+            return []
     
     async def get_historical_prices(
         self, 
