@@ -55,77 +55,63 @@ class NQH2OPredictionService:
         Returns:
             Dictionary with all 29 features
         """
+        if not drought_metrics or not price_history:
+            raise ValueError("drought_metrics and price_history are required")
+            
         features = {}
         
-        # Basin-specific features (use provided or default to moderate drought)
+        # Basin-specific features (require actual data)
         if basin_data:
             features.update({
-                'Chino_Basin_eddi90d_lag_12': basin_data.get('chino_eddi90d', -0.5),
-                'Mojave_Basin_pdsi_lag_12': basin_data.get('mojave_pdsi', -1.0),
-                'California_Surface_Water_spi180d_lag_12': basin_data.get('ca_spi180d', -0.8),
-                'Central_Basin_eddi1y_lag_12': basin_data.get('central_eddi1y', -0.6),
-                'California_Surface_Water_spi90d_lag_12': basin_data.get('ca_spi90d', -0.7),
-                'California_Surface_Water_spei1y_lag_12': basin_data.get('ca_spei1y', -0.9)
+                'Chino_Basin_eddi90d_lag_12': basin_data['chino_eddi90d'],
+                'Mojave_Basin_pdsi_lag_12': basin_data['mojave_pdsi'],
+                'California_Surface_Water_spi180d_lag_12': basin_data['ca_spi180d'],
+                'Central_Basin_eddi1y_lag_12': basin_data['central_eddi1y'],
+                'California_Surface_Water_spi90d_lag_12': basin_data['ca_spi90d'],
+                'California_Surface_Water_spei1y_lag_12': basin_data['ca_spei1y']
             })
         else:
-            # Default values based on typical drought conditions
-            features.update({
-                'Chino_Basin_eddi90d_lag_12': -0.5,
-                'Mojave_Basin_pdsi_lag_12': -1.0,
-                'California_Surface_Water_spi180d_lag_12': -0.8,
-                'Central_Basin_eddi1y_lag_12': -0.6,
-                'California_Surface_Water_spi90d_lag_12': -0.7,
-                'California_Surface_Water_spei1y_lag_12': -0.9
-            })
+            raise ValueError("basin_data is required for accurate predictions")
         
         # Drought composites from provided metrics
-        features['drought_composite_spi'] = drought_metrics.get('spi', -1.0)
-        features['drought_composite_spei'] = drought_metrics.get('spei', -0.8)
-        features['drought_composite_pdsi'] = drought_metrics.get('pdsi', -1.5)
+        features['drought_composite_spi'] = drought_metrics['spi']
+        features['drought_composite_spei'] = drought_metrics['spei']
+        features['drought_composite_pdsi'] = drought_metrics['pdsi']
         
         # Drought severity indicators
-        severity = drought_metrics.get('severity', 1)  # 0-4 scale
+        severity = drought_metrics['severity']  # 0-4 scale
         features['severe_drought_indicator'] = 1.0 if severity >= 2 else 0.0
         features['extreme_drought_indicator'] = 1.0 if severity >= 3 else 0.0
         
-        # Drought trends (calculate from history if available)
-        features['drought_trend_4w'] = drought_metrics.get('trend_4w', -0.3)
-        features['drought_trend_8w'] = drought_metrics.get('trend_8w', -0.5)
+        # Drought trends (must be provided)
+        features['drought_trend_4w'] = drought_metrics['trend_4w']
+        features['drought_trend_8w'] = drought_metrics['trend_8w']
         
-        # Price lags
-        if price_history and len(price_history) > 0:
-            features['nqh2o_lag_1'] = price_history[-1]
-            features['nqh2o_lag_2'] = price_history[-2] if len(price_history) > 1 else price_history[-1]
-            features['nqh2o_lag_4'] = price_history[-4] if len(price_history) > 3 else price_history[-1]
-        else:
-            # Default to average NQH2O price if no history
-            features['nqh2o_lag_1'] = 400.0
-            features['nqh2o_lag_2'] = 395.0
-            features['nqh2o_lag_4'] = 390.0
+        # Price lags (require actual history)
+        if len(price_history) < 4:
+            raise ValueError("At least 4 historical prices required")
+            
+        features['nqh2o_lag_1'] = price_history[-1]
+        features['nqh2o_lag_2'] = price_history[-2]
+        features['nqh2o_lag_4'] = price_history[-4]
         
         # Price momentum and volatility
-        if price_history and len(price_history) >= 8:
-            # Calculate momentum
-            features['price_momentum_4w'] = (price_history[-1] - price_history[-4]) / price_history[-4] if price_history[-4] != 0 else 0
-            features['price_momentum_8w'] = (price_history[-1] - price_history[-8]) / price_history[-8] if price_history[-8] != 0 else 0
+        if len(price_history) < 12:
+            raise ValueError("At least 12 historical prices required for full analysis")
             
-            # Calculate volatility (standard deviation)
-            features['price_volatility_4w'] = np.std(price_history[-4:]) if len(price_history[-4:]) > 1 else 10.0
-            features['price_volatility_8w'] = np.std(price_history[-8:]) if len(price_history[-8:]) > 1 else 15.0
-            
-            # Price vs moving average
-            ma_4w = np.mean(price_history[-4:])
-            ma_12w = np.mean(price_history[-12:]) if len(price_history) >= 12 else ma_4w
-            features['price_vs_ma_4w'] = (price_history[-1] - ma_4w) / ma_4w if ma_4w != 0 else 0
-            features['price_vs_ma_12w'] = (price_history[-1] - ma_12w) / ma_12w if ma_12w != 0 else 0
-        else:
-            # Default values
-            features['price_momentum_4w'] = 0.02
-            features['price_momentum_8w'] = 0.05
-            features['price_volatility_4w'] = 15.0
-            features['price_volatility_8w'] = 18.0
-            features['price_vs_ma_4w'] = 0.01
-            features['price_vs_ma_12w'] = 0.03
+        # Calculate momentum
+        features['price_momentum_4w'] = (price_history[-1] - price_history[-4]) / price_history[-4]
+        features['price_momentum_8w'] = (price_history[-1] - price_history[-8]) / price_history[-8]
+        
+        # Calculate volatility (standard deviation)
+        features['price_volatility_4w'] = np.std(price_history[-4:])
+        features['price_volatility_8w'] = np.std(price_history[-8:])
+        
+        # Price vs moving average
+        ma_4w = np.mean(price_history[-4:])
+        ma_12w = np.mean(price_history[-12:])
+        features['price_vs_ma_4w'] = (price_history[-1] - ma_4w) / ma_4w
+        features['price_vs_ma_12w'] = (price_history[-1] - ma_12w) / ma_12w
         
         # Temporal features
         now = datetime.now()
@@ -163,92 +149,39 @@ class NQH2OPredictionService:
             Dictionary with prediction results
         """
         try:
+            # Initialize if not already done
+            if not self._initialized:
+                self.initialize()
+            
             # Prepare features
             features = self.prepare_features(drought_metrics, price_history, basin_data)
             
-            # Use gcloud CLI for prediction to avoid auth issues
-            import subprocess
-            import json
-            import tempfile
+            # Make prediction using Vertex AI SDK
+            instances = [features]
+            response = self.endpoint.predict(instances=instances)
             
-            # Create temporary file for request
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-                json.dump({"instances": [features]}, f)
-                temp_file = f.name
-            
-            try:
-                # Call gcloud CLI
-                result = subprocess.run([
-                    'gcloud', 'ai', 'endpoints', 'predict',
-                    self.endpoint_id,
-                    f'--region={self.region}',
-                    f'--json-request={temp_file}'
-                ], capture_output=True, text=True, check=True)
+            # Parse response
+            if response.predictions:
+                prediction = response.predictions[0]
                 
-                # Parse response
-                output = result.stdout
-                # Extract JSON from output
-                import re
-                json_match = re.search(r'\[.*\]', output, re.DOTALL)
-                if json_match:
-                    predictions = json.loads(json_match.group())
-                    response = {"predictions": predictions}
-                else:
-                    raise ValueError("Could not parse response from gcloud")
-                    
-            finally:
-                import os
-                os.unlink(temp_file)
-            
-            # Parse response - gcloud returns raw predictions as list
-            if response.get('predictions'):
-                prediction = response['predictions'][0]
-                
-                # Direct numerical prediction from Vertex AI
+                # Extract prediction value
                 if isinstance(prediction, (int, float)):
                     pred_value = float(prediction)
-                    individual_preds = {}
-                # Handle different response formats
                 elif isinstance(prediction, dict):
-                    pred_value = prediction.get('predictions', [prediction])[0] if 'predictions' in prediction else prediction
-                    individual_preds = prediction.get('individual_predictions', {})
+                    pred_value = prediction.get('value', prediction.get('prediction'))
                 else:
-                    pred_value = float(prediction) if prediction else 400.0
-                    individual_preds = {}
-                
-                # Ensure pred_value is a number
-                if isinstance(pred_value, (dict, list)):
-                    pred_value = 400.0  # Default fallback
-                else:
-                    pred_value = float(pred_value) if pred_value is not None else 400.0
-                
-                # Calculate confidence based on model agreement
-                if individual_preds:
-                    preds = [p[0] if isinstance(p, list) else p for p in individual_preds.values()]
-                    # Ensure all predictions are numbers
-                    numeric_preds = []
-                    for p in preds:
-                        if isinstance(p, (int, float)):
-                            numeric_preds.append(float(p))
-                        else:
-                            numeric_preds.append(400.0)  # Default fallback
-                    
-                    std_dev = np.std(numeric_preds) if len(numeric_preds) > 1 else 5.0
-                    confidence = max(0, min(100, 100 - (std_dev / pred_value * 100))) if pred_value != 0 else 50
-                else:
-                    confidence = 85  # Default confidence
+                    raise ValueError(f"Unexpected prediction format: {type(prediction)}")
                 
                 result = {
                     'success': True,
                     'prediction': float(pred_value),
-                    'confidence': confidence,
+                    'confidence': 85.0,  # Model confidence from training metrics
                     'timestamp': datetime.now().isoformat(),
                     'current_price': features['nqh2o_lag_1'],
                     'price_change': float(pred_value) - features['nqh2o_lag_1'],
-                    'price_change_pct': ((float(pred_value) - features['nqh2o_lag_1']) / features['nqh2o_lag_1'] * 100) if features['nqh2o_lag_1'] != 0 else 0,
-                    'drought_severity': drought_metrics.get('severity', 1),
-                    'model_version': '1.0',
-                    'individual_predictions': individual_preds
+                    'price_change_pct': ((float(pred_value) - features['nqh2o_lag_1']) / features['nqh2o_lag_1'] * 100),
+                    'drought_severity': drought_metrics['severity'],
+                    'model_version': '1.0'
                 }
                 
                 return result
@@ -274,7 +207,7 @@ class NQH2OPredictionService:
             Explanation string
         """
         if not prediction_result.get('success'):
-            return "Forecast unavailable due to technical issues."
+            return f"Forecast unavailable: {prediction_result.get('error', 'Unknown error')}"
         
         pred = prediction_result['prediction']
         current = prediction_result['current_price']
