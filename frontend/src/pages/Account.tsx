@@ -175,7 +175,7 @@ const Account: React.FC = () => {
       console.error('Error fetching account data:', error);
       // Try Alpaca endpoint as fallback
       try {
-        const alpacaResponse = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/trading/account`);
+        const alpacaResponse = await axios.get(`${API_CONFIG.API_URL}/api/v1/trading/account`);
         setBalance(alpacaResponse.data.cash || alpacaResponse.data.portfolio_value || 0);
       } catch {
         setBalance(0);
@@ -187,7 +187,7 @@ const Account: React.FC = () => {
 
   const fetchPositions = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/trading/positions`);
+      const response = await axios.get(`${API_CONFIG.API_URL}/api/v1/trading/positions`);
       // Ensure positions is always an array
       const positionsData = response.data;
       setPositions(Array.isArray(positionsData) ? positionsData : []);
@@ -323,7 +323,7 @@ const Account: React.FC = () => {
       <Card sx={{ mb: 3, bgcolor: 'background.paper' }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid xs={12} md={4}>
               <Typography variant="h6" gutterBottom>
                 Drought Index Monitor
               </Typography>
@@ -356,7 +356,7 @@ const Account: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: 8 }}>
+            <Grid xs={12} md={8}>
               {isProcessing && (
                 <Box display="flex" alignItems="center" gap={2}>
                   <CircularProgress size={20} />
@@ -393,9 +393,9 @@ const Account: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Balance Overview */}
-        <Grid size={12}>
+        <Grid xs={12}>
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid xs={12} md={3}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -407,7 +407,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid xs={12} md={3}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -419,7 +419,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid xs={12} md={3}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -431,7 +431,7 @@ const Account: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid xs={12} md={3}>
               <Card>
                 <CardContent>
                   <Typography color="textSecondary" gutterBottom>
@@ -448,7 +448,7 @@ const Account: React.FC = () => {
 
         {/* Active Positions from Alpaca */}
         {positions.length > 0 && (
-          <Grid size={12}>
+          <Grid xs={12}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="h6" gutterBottom>
                 Active Positions (Alpaca)
@@ -492,7 +492,7 @@ const Account: React.FC = () => {
         )}
 
         {/* Transaction History */}
-        <Grid size={12}>
+        <Grid xs={12}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
               Transaction History
@@ -562,7 +562,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Subsidy Programs Info */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -593,7 +593,7 @@ const Account: React.FC = () => {
         </Grid>
 
         {/* Automated Trading Status */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
