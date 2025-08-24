@@ -233,21 +233,10 @@ Based on the user's message, determine:
         try:
             # Check if Anthropic client is initialized
             if not self.anthropic:
-                # Use fallback response without Claude
-                fallback_responses = {
-                    "TRADE": "I can help you understand water futures trading. The current price for NQH25 contracts is $508. To execute actual trades, you'll need to enable Agent Mode.",
-                    "SUBSIDY": "There's a $15,000 drought relief subsidy available through Crossmint. To process the claim, you'll need to enable Agent Mode.",
-                    "ACCOUNT": "I can help you understand your portfolio. To see real account details, please enable Agent Mode.",
-                    "FORECAST": "Based on current drought conditions (severity 4/5), water futures prices are likely to increase. Enable Agent Mode for detailed forecasts.",
-                    "GENERAL_CONVERSATION": "I'm here to help with your farming and water management needs. What would you like to know?",
-                    "UNKNOWN": "I'm here to help with water futures trading, subsidies, and farming strategies. What can I assist you with today?"
-                }
-                
+                # Return error - no fallback, require real API
                 return {
-                    "response": fallback_responses.get(
-                        intent.get("primary_intent", "UNKNOWN"),
-                        "I'm here to help with your farming and water management needs. What would you like to know?"
-                    ),
+                    "response": "API configuration error. Please ensure Anthropic API key is properly configured.",
+                    "error": "Anthropic client not initialized",
                     "mode": "chat",
                     "intent": intent
                 }
@@ -280,10 +269,7 @@ Be conversational, friendly, and helpful. You can discuss:
 - Farming best practices and advice
 - Market analysis and predictions
 
-Current market conditions:
-- Water futures (NQH25): $508
-- Drought severity: 4/5 in Central Valley
-- Available subsidies: $15,000 drought relief via Crossmint
+Current market conditions will be fetched from real-time APIs.
 
 IMPORTANT: You're in CHAT MODE, so you CANNOT execute real transactions. 
 If the user wants to trade or claim subsidies, politely explain they need to enable Agent Mode for real transactions.
@@ -295,16 +281,17 @@ Be natural and conversational - not every response needs to mention Agent Mode o
             
             # Add suggested actions based on intent (only if relevant)
             suggested_actions = []
-            if intent["primary_intent"] == "TRADE" and "buy" in message.lower() or "sell" in message.lower():
+            if intent["primary_intent"] == "TRADE" and any(word in message.lower() for word in ["buy", "sell"]):
+                side = "BUY" if "buy" in message.lower() else "SELL"
                 suggested_actions.append({
                     "type": "trade",
-                    "action": f"{intent['parameters'].get('side', 'BUY')} {intent['parameters'].get('quantity', 5)} water futures",
+                    "action": f"{side} water futures",
                     "requiresAgentMode": True
                 })
             elif intent["primary_intent"] == "SUBSIDY" and any(word in message.lower() for word in ["claim", "process", "get"]):
                 suggested_actions.append({
                     "type": "subsidy",
-                    "action": "Claim $15,000 drought relief",
+                    "action": "Process subsidy claim",
                     "requiresAgentMode": True
                 })
             
@@ -316,21 +303,9 @@ Be natural and conversational - not every response needs to mention Agent Mode o
             }
             
         except Exception as e:
-            # Fallback response if Claude fails
-            fallback_responses = {
-                "TRADE": "I can help you understand water futures trading. The current price for NQH25 contracts is $508. To execute actual trades, you'll need to enable Agent Mode.",
-                "SUBSIDY": "There's a $15,000 drought relief subsidy available through Crossmint. To process the claim, you'll need to enable Agent Mode.",
-                "ACCOUNT": "I can help you understand your portfolio. To see real account details, please enable Agent Mode.",
-                "FORECAST": "Based on current drought conditions (severity 4/5), water futures prices are likely to increase. Enable Agent Mode for detailed forecasts.",
-                "GENERAL_CONVERSATION": "I'm here to help with your farming and water management needs. What would you like to know?",
-                "UNKNOWN": "I'm here to help with water futures trading, subsidies, and farming strategies. What can I assist you with today?"
-            }
-            
+            # Return error - no fallback
             return {
-                "response": fallback_responses.get(
-                    intent.get("primary_intent", "UNKNOWN"),
-                    "I'm here to help with your farming needs. What would you like to know?"
-                ),
+                "response": "Error processing request. Please try again.",
                 "error": str(e),
                 "mode": "chat"
             }

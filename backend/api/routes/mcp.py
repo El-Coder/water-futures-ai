@@ -12,31 +12,31 @@ import os
 router = APIRouter()
 alpaca_service = AlpacaService()
 
-# Farmer wallet mappings
+# Farmer wallet mappings - use real Crossmint user IDs instead of fake addresses
 FARMER_WALLETS = {
-    "farmer-ted": "0xfarmerted123456789",
-    "farmer-alice": "0xfarmeralice987654321",
-    "farmer-bob": "0xfarmerbob555666777"
+    "farmer-ted": "farmerted",  # Crossmint user ID, not wallet address
+    "farmer-alice": "farmeralice", 
+    "farmer-bob": "farmerbob"
 }
 
 @router.get("/farmer/balance/{farmer_id}")
 async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
     """Get farmer's wallet balance"""
     try:
-        # Get farmer's wallet address
-        wallet_address = FARMER_WALLETS.get(farmer_id)
-        if not wallet_address:
+        # Get farmer's Crossmint user ID
+        user_id = FARMER_WALLETS.get(farmer_id)
+        if not user_id:
             raise HTTPException(status_code=404, detail=f"Farmer {farmer_id} not found")
         
         # Get REAL Alpaca account balance
         alpaca_account = await alpaca_service.get_account()
         
         # Get balance from Crossmint service for subsidies
-        balance_data = await crossmint_service.get_wallet_balance(wallet_address)
+        balance_data = await crossmint_service.get_wallet_balance(user_id)
         available_subsidies = await _get_available_subsidies(farmer_id)
         
-        # Get REAL ETH Sepolia balance from blockchain
-        eth_balance = await _get_eth_balance(wallet_address)
+        # Get REAL USDC balance from Crossmint
+        usdc_balance = await _get_crossmint_balance(user_id)
         
         return {
             "tradingAccount": {
