@@ -12,11 +12,10 @@ import os
 router = APIRouter()
 alpaca_service = AlpacaService()
 
-# Farmer wallet mappings - use real Crossmint user IDs instead of fake addresses
+# Farmer wallet mappings - only real Crossmint user IDs
 FARMER_WALLETS = {
-    "farmer-ted": "farmerted",  # Crossmint user ID, not wallet address
-    "farmer-alice": "farmeralice", 
-    "farmer-bob": "farmerbob"
+    "farmer-ted": "farmerted",  # Real Crossmint user ID
+    # Only include real Crossmint users here
 }
 
 @router.get("/farmer/balance/{farmer_id}")
@@ -50,8 +49,8 @@ async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
             },
             "subsidyAccounts": {
                 "drought_relief": {
-                    "balance": eth_balance,  # This IS the subsidy - Ethereum balance from Crossmint
-                    "available": eth_balance,
+                    "balance": usdc_balance,  # Real USDC balance from Crossmint
+                    "available": usdc_balance,
                     "pending": 0,
                     "canUseForTrading": False,
                     "restrictions": "Government subsidy funds via Crossmint"
@@ -63,15 +62,15 @@ async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
                     "canUseForTrading": False,
                     "restrictions": "Must be used for conservation equipment"
                 },
-                "totalSubsidies": eth_balance,  # The ETH balance IS the subsidy
-                "totalAvailable": eth_balance,
+                "totalSubsidies": usdc_balance,  # Real USDC balance IS the subsidy
+                "totalAvailable": usdc_balance,
                 "cannotUseMessage": "Government subsidies cannot be used for speculative trading"
             },
             "ethBalance": {
-                "sepolia": eth_balance,
-                "address": wallet_address,
+                "sepolia": usdc_balance,
+                "address": user_id,  # Crossmint user ID
                 "network": "Sepolia Testnet",
-                "token": "USDC"  # Clarify that this is USDC on Sepolia
+                "token": "USDC"  # Real USDC on Sepolia
             },
             "totalBalance": {
                 "allFunds": alpaca_account.get("portfolio_value", 0) + available_subsidies,
@@ -83,7 +82,7 @@ async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
                 "nextReportingDate": "2025-09-01"
             },
             "farmer_id": farmer_id,
-            "wallet": wallet_address,
+            "wallet": user_id,
             "last_updated": balance_data.get("last_updated")
         }
         
@@ -133,13 +132,13 @@ async def claim_subsidy(request: Dict[str, Any]) -> Dict[str, Any]:
         if amount == 0:
             raise HTTPException(status_code=400, detail="No subsidy available for this farmer")
         
-        wallet_address = FARMER_WALLETS.get(farmer_id)
-        if not wallet_address:
+        user_id = FARMER_WALLETS.get(farmer_id)
+        if not user_id:
             raise HTTPException(status_code=404, detail=f"Farmer {farmer_id} not found")
         
         # Process the subsidy payment from Uncle Sam's wallet
         result = await crossmint_service.process_subsidy_payment(
-            farmer_wallet=wallet_address,
+            farmer_wallet=user_id,
             amount=amount,
             subsidy_type=subsidy_type,
             metadata={
@@ -161,12 +160,12 @@ async def claim_subsidy(request: Dict[str, Any]) -> Dict[str, Any]:
 async def get_farmer_transactions(farmer_id: str) -> list:
     """Get farmer's transaction history from Crossmint"""
     try:
-        wallet_address = FARMER_WALLETS.get(farmer_id)
-        if not wallet_address:
+        user_id = FARMER_WALLETS.get(farmer_id)
+        if not user_id:
             raise HTTPException(status_code=404, detail=f"Farmer {farmer_id} not found")
         
         # Get transactions from Crossmint
-        transactions = await crossmint_service.get_transaction_history(wallet_address)
+        transactions = await crossmint_service.get_transaction_history(user_id)
         
         # Format for frontend
         formatted_txns = []
@@ -196,9 +195,9 @@ async def _get_available_subsidies(farmer_id: str) -> int:
         # This should query the actual Crossmint wallet balance for subsidies
         # For Farmer Ted, check his actual Crossmint wallet for subsidy funds
         
-        # Get the farmer's wallet
-        wallet_address = FARMER_WALLETS.get(farmer_id)
-        if not wallet_address:
+        # Get the farmer's user ID
+        user_id = FARMER_WALLETS.get(farmer_id)
+        if not user_id:
             return 0
             
         # TODO: Call Crossmint API to get actual subsidy balance
@@ -208,12 +207,9 @@ async def _get_available_subsidies(farmer_id: str) -> int:
         print(f"Error getting subsidies: {e}")
         return 0
 
-async def _get_eth_balance(wallet_address: str) -> float:
-    """Get USDC balance from Sepolia testnet via Crossmint (shown as ETH for demo)"""
+async def _get_crossmint_balance(user_id: str) -> float:
+    """Get real USDC balance from Crossmint API"""
     try:
-        # Determine user ID from wallet address
-        user_id = "farmerted" if "farmerted" in wallet_address else "farmeralice"
-        
         # Call Crossmint API to get USDC balance
         url = f"https://staging.crossmint.com/api/2025-06-09/wallets/userId:{user_id}:evm/balances"
         api_key = os.getenv("CROSSMINT_API_KEY")
@@ -227,21 +223,15 @@ async def _get_eth_balance(wallet_address: str) -> float:
             
             if response.status_code == 200:
                 data = response.json()
-                # Extract USDC balance from response (we'll show it as ETH-equivalent for demo)
+                # Extract real USDC balance from response
                 if isinstance(data, list) and len(data) > 0:
                     # Get USDC amount and return it
                     usdc_balance = float(data[0].get("amount", 0))
-                    return usdc_balance  # Return USDC balance
+                    return usdc_balance  # Return real USDC balance
                 return 0.0
             else:
                 print(f"Crossmint API error: {response.status_code}")
-                # Fallback to a default value for Farmer Ted
-                if "farmerted" in wallet_address:
-                    return 11.5  # Known USDC balance for Farmer Ted
                 return 0.0
     except Exception as e:
         print(f"Error fetching balance: {e}")
-        # Fallback to known values
-        if "farmerted" in wallet_address:
-            return 11.5
         return 0.0
