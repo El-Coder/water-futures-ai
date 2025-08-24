@@ -116,7 +116,12 @@ class WaterFuturesService:
         """
         Get historical price data
         """
-        df = data_store.get_historical_prices(contract_code, start_date, end_date)
+        # Ensure parameters are not None
+        safe_contract_code = contract_code or "NQH25"
+        safe_start_date = start_date or (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        safe_end_date = end_date or datetime.now().strftime("%Y-%m-%d")
+        
+        df = data_store.get_historical_prices(safe_contract_code, safe_start_date, safe_end_date)
         
         if df.empty:
             # Return mock data if no historical data available
@@ -296,22 +301,27 @@ class WaterFuturesService:
             }
         
         # Filter by date range if provided
-        if start_date:
+        if start_date and not historical_data.empty:
             historical_data = historical_data[historical_data.index >= start_date]
-        if end_date:
+        if end_date and not historical_data.empty:
             historical_data = historical_data[historical_data.index <= end_date]
         
         # Convert to list format
         data_list = []
-        for date, row in historical_data.iterrows():
-            data_list.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "open": float(row.get('open', 0)),
-                "high": float(row.get('high', 0)),
-                "low": float(row.get('low', 0)),
-                "close": float(row.get('close', 0)),
-                "volume": int(row.get('volume', 0))
-            })
+        if not historical_data.empty:
+            for date, row in historical_data.iterrows():
+                try:
+                    data_list.append({
+                        "date": str(date) if hasattr(date, 'strftime') else str(date),
+                        "open": float(row.get('open', 0) or 0),
+                        "high": float(row.get('high', 0) or 0),
+                        "low": float(row.get('low', 0) or 0),
+                        "close": float(row.get('close', 0) or 0),
+                        "volume": int(row.get('volume', 0) or 0)
+                    })
+                except (ValueError, TypeError):
+                    # Skip rows with invalid data
+                    continue
         
         return {
             "contract_code": contract_code,

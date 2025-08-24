@@ -51,17 +51,17 @@ class DataStore:
             with open(embeddings_path, 'r') as f:
                 self.embeddings_cache = json.load(f)
     
-    def get_historical_prices(self, contract_code: str = None, 
-                            start_date: str = None, 
-                            end_date: str = None) -> pd.DataFrame:
+    def get_historical_prices(self, contract_code: Optional[str] = None, 
+                            start_date: Optional[str] = None, 
+                            end_date: Optional[str] = None) -> pd.DataFrame:
         """Get historical prices with optional filtering"""
         if self.historical_prices is None:
             return pd.DataFrame()
         
         df = self.historical_prices.copy()
         
-        if contract_code:
-            df = df[df['contract_code'] == contract_code] if 'contract_code' in df.columns else df
+        if contract_code and 'contract_code' in df.columns:
+            df = df[df['contract_code'] == contract_code]
         
         if start_date and 'date' in df.columns:
             df = df[pd.to_datetime(df['date']) >= pd.to_datetime(start_date)]

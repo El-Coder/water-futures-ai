@@ -180,8 +180,9 @@ class ForecastService:
         prices = historical['close'].tail(10).values
         x = np.arange(len(prices))
         
-        # Simple linear regression
-        coeffs = np.polyfit(x, prices, 1)
+        # Simple linear regression - ensure prices are numeric
+        prices_numeric = np.array(prices, dtype=float)
+        coeffs = np.polyfit(x, prices_numeric, 1)
         trend = coeffs[0]
         
         # Project forward

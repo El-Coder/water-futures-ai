@@ -140,7 +140,7 @@ class MLService:
             "mae": 1.8,
             "rmse": 3.2,
             "mape": 0.5,
-            "contract_code": contract_code,
+            "contract_code": contract_code or "NQH25",
             "evaluation_date": datetime.now().isoformat(),
             "test_set_size": 1000,
             "training_set_size": 5000,

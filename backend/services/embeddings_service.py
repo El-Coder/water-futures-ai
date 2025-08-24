@@ -51,7 +51,14 @@ class EmbeddingsService:
         # Cache the embedding
         self.embeddings_cache[text] = embedding
         
-        return embedding
+        # Ensure we return a list of floats
+        if isinstance(embedding, list):
+            return embedding
+        elif isinstance(embedding, float):
+            return [embedding]
+        else:
+            # Convert to list if it's a numpy array or other format
+            return list(embedding) if hasattr(embedding, '__iter__') else [float(embedding)]
     
     async def similarity_search(
         self, 
