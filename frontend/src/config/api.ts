@@ -6,36 +6,30 @@
 const isDevelopment = import.meta.env.MODE === 'development';
 const isProduction = import.meta.env.MODE === 'production';
 
-// API URLs
+// API URLs - MUST use environment variables, no hardcoded localhost in production!
 export const API_CONFIG = {
   // Backend API
-  API_URL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  API_URL: import.meta.env.VITE_API_URL,
   
   // MCP Server
-  MCP_URL: import.meta.env.VITE_MCP_URL || 'http://localhost:8080',
+  MCP_URL: import.meta.env.VITE_MCP_URL,
   
   // Chat Service
-  CHAT_URL: import.meta.env.VITE_CHAT_URL || 'http://localhost:8001',
+  CHAT_URL: import.meta.env.VITE_CHAT_URL,
   
   // Specific endpoints
   CHAT_ENDPOINT: import.meta.env.VITE_CHAT_ENDPOINT || 
-    (import.meta.env.VITE_CHAT_URL ? `${import.meta.env.VITE_CHAT_URL}/api/v1/chat` : 'http://localhost:8001/api/v1/chat'),
+    `${import.meta.env.VITE_CHAT_URL}/api/v1/chat`,
   
   AGENT_ENDPOINT: import.meta.env.VITE_AGENT_ENDPOINT || 
-    (import.meta.env.VITE_CHAT_URL ? `${import.meta.env.VITE_CHAT_URL}/api/v1/agent/execute` : 'http://localhost:8001/api/v1/agent/execute'),
+    `${import.meta.env.VITE_CHAT_URL}/api/v1/agent/execute`,
   
   // Drought endpoints
-  DROUGHT_CONTEXT_ENDPOINT: import.meta.env.VITE_CHAT_URL 
-    ? `${import.meta.env.VITE_CHAT_URL}/api/v1/context/drought`
-    : 'http://localhost:8001/api/v1/context/drought',
+  DROUGHT_CONTEXT_ENDPOINT: `${import.meta.env.VITE_CHAT_URL}/api/v1/context/drought`,
   
-  DROUGHT_NOTIFY_ENDPOINT: import.meta.env.VITE_CHAT_URL
-    ? `${import.meta.env.VITE_CHAT_URL}/api/v1/agent/notify-drought`
-    : 'http://localhost:8001/api/v1/agent/notify-drought',
+  DROUGHT_NOTIFY_ENDPOINT: `${import.meta.env.VITE_CHAT_URL}/api/v1/agent/notify-drought`,
   
-  DROUGHT_TRANSFER_ENDPOINT: import.meta.env.VITE_CHAT_URL
-    ? `${import.meta.env.VITE_CHAT_URL}/api/v1/drought/execute-transfer`
-    : 'http://localhost:8001/api/v1/drought/execute-transfer',
+  DROUGHT_TRANSFER_ENDPOINT: `${import.meta.env.VITE_CHAT_URL}/api/v1/drought/execute-transfer`,
 };
 
 // Firebase configuration

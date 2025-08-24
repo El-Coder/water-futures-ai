@@ -10,16 +10,12 @@ class Settings(BaseSettings):
     
     # CORS
     ALLOWED_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:8000",
         "https://water-futures-ai.web.app",
+        "https://water-futures-ai.firebaseapp.com",
     ]
     
     # Database
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql://postgres:password@localhost:5432/water_futures"
-    )
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
     
     # GCP
     GCP_PROJECT_ID: str = "water-futures-ai"
@@ -46,7 +42,7 @@ class Settings(BaseSettings):
     
     # MCP/Smithery
     SMITHERY_API_KEY: str = os.getenv("SMITHERY_API_KEY", "")
-    MCP_SERVER_URL: str = os.getenv("MCP_SERVER_URL", "http://localhost:5000")
+    MCP_SERVER_URL: str = os.getenv("MCP_SERVER_URL", "")
     
     # Crossmint
     CROSSMINT_API_KEY: str = os.getenv("CROSSMINT_API_KEY", "")

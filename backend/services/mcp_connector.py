@@ -26,8 +26,8 @@ class MCPConnector:
             print("⚠️  Anthropic API key not found. Set ANTHROPIC_API_KEY environment variable.")
         
         # MCP Server endpoints
-        self.trading_agent_url = os.getenv("TRADING_AGENT_URL", "http://localhost:5001")
-        self.farmer_assistant_url = os.getenv("FARMER_ASSISTANT_URL", "http://localhost:5002")
+        self.trading_agent_url = os.getenv("TRADING_AGENT_URL", "")
+        self.farmer_assistant_url = os.getenv("FARMER_ASSISTANT_URL", "")
         
     async def process_message(self, message: str, mode: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """

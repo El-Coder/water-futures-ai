@@ -356,7 +356,7 @@ const Trading: React.FC = () => {
                 <Typography color="textSecondary" gutterBottom>
                   Water Futures (Ethereum)
                 </Typography>
-                <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" alt="ETH" width="24" />
+                <Typography variant="caption">ETH</Typography>
               </Box>
               <Typography variant="h5">
                 {balance?.ethBalance?.sepolia?.toFixed(2) || '0.00'} ETH
@@ -365,9 +365,6 @@ const Trading: React.FC = () => {
                 On Sepolia Testnet
               </Typography>
               <Divider sx={{ my: 1 }} />
-              <Typography variant="caption">
-                For water futures trading only
-              </Typography>
             </CardContent>
           </Card>
         </Grid>
