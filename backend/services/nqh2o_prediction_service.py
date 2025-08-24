@@ -163,16 +163,42 @@ class NQH2OPredictionService:
             Dictionary with prediction results
         """
         try:
-            # Initialize if needed
-            if not self._initialized:
-                self.initialize()
-            
             # Prepare features
             features = self.prepare_features(drought_metrics, price_history, basin_data)
             
-            # Make prediction
-            instances = [features]
-            response = self.endpoint.predict(instances=instances)
+            # Use gcloud CLI for prediction to avoid auth issues
+            import subprocess
+            import json
+            import tempfile
+            
+            # Create temporary file for request
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                json.dump({"instances": [features]}, f)
+                temp_file = f.name
+            
+            try:
+                # Call gcloud CLI
+                result = subprocess.run([
+                    'gcloud', 'ai', 'endpoints', 'predict',
+                    self.endpoint_id,
+                    f'--region={self.region}',
+                    f'--json-request={temp_file}'
+                ], capture_output=True, text=True, check=True)
+                
+                # Parse response
+                output = result.stdout
+                # Extract JSON from output
+                import re
+                json_match = re.search(r'\[.*\]', output, re.DOTALL)
+                if json_match:
+                    predictions = json.loads(json_match.group())
+                    response = {"predictions": predictions}
+                else:
+                    raise ValueError("Could not parse response from gcloud")
+                    
+            finally:
+                import os
+                os.unlink(temp_file)
             
             # Parse response
             if hasattr(response, 'predictions') and response.predictions:
