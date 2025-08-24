@@ -30,6 +30,15 @@ import {
 } from '@mui/icons-material';
 import waterFuturesAPI from '../services/api';
 import ChatbotV2 from '../components/ChatbotV2';
+
+interface Position {
+  symbol: string;
+  qty: number;
+  side: string;
+  market_value: number;
+  unrealized_pl: number;
+  unrealized_plpc: number;
+}
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 
@@ -82,6 +91,53 @@ interface Transaction {
   description: string;
   fundSource: string;
 }
+
+// Component for displaying real positions
+const PositionsList: React.FC = () => {
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    fetchPositions();
+  }, []);
+  
+  const fetchPositions = async () => {
+    try {
+      const response = await axios.get(`${API_CONFIG.API_URL}/api/v1/trading/positions`);
+      if (response.data && Array.isArray(response.data)) {
+        setPositions(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching positions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  if (loading) {
+    return <Typography variant="body2">Loading positions...</Typography>;
+  }
+  
+  if (positions.length === 0) {
+    return <Typography variant="body2" color="textSecondary">No active positions</Typography>;
+  }
+  
+  return (
+    <>
+      {positions.map((position, idx) => (
+        <Box key={idx} sx={{ mt: 2 }}>
+          <Typography variant="subtitle2">
+            {position.symbol} - {position.qty} {position.qty === 1 ? 'Share' : 'Shares'}
+          </Typography>
+          <Typography color={position.unrealized_pl >= 0 ? "success.main" : "error.main"}>
+            {position.unrealized_pl >= 0 ? '+' : ''}
+            ${position.unrealized_pl?.toFixed(2)} ({position.unrealized_plpc?.toFixed(2)}%)
+          </Typography>
+        </Box>
+      ))}
+    </>
+  );
+};
 
 const Trading: React.FC = () => {
   const [contractCode, setContractCode] = useState('NQH25');
@@ -197,36 +253,57 @@ const Trading: React.FC = () => {
   };
 
   const fetchTransactions = async () => {
-    // Mock transactions - in production would fetch from API
-    setTransactions([
-      {
-        id: 'TXN-001',
-        date: '2025-08-23',
-        type: 'SUBSIDY',
-        amount: 15000,
-        status: 'completed',
-        description: 'Drought Relief Payment',
-        fundSource: 'Crossmint - US Government'
-      },
-      {
-        id: 'TXN-002',
-        date: '2025-08-22',
-        type: 'TRADE',
-        amount: -5000,
-        status: 'completed',
-        description: 'Buy 10 NQH25 @ $500',
-        fundSource: 'Alpaca Trading Account'
-      },
-      {
-        id: 'TXN-003',
-        date: '2025-08-21',
-        type: 'SUBSIDY_USAGE',
-        amount: -2500,
-        status: 'completed',
-        description: 'Water Rights Purchase',
-        fundSource: 'Drought Relief Fund'
-      },
-    ]);
+    try {
+      // Fetch ALL orders from Alpaca (including accepted but not filled) and Crossmint transactions
+      const [alpacaOrders, crossmintTxns] = await Promise.all([
+        axios.get(`${API_CONFIG.API_URL}/api/v1/trading/orders/all`).catch(() => ({ data: [] })),
+        axios.get(`${API_CONFIG.API_URL}/api/mcp/farmer/transactions/farmer-ted`).catch(() => ({ data: [] }))
+      ]);
+      
+      // Combine and format transactions
+      const formattedTransactions: Transaction[] = [];
+      
+      // Add Alpaca orders (including accepted but not filled)
+      if (alpacaOrders.data && Array.isArray(alpacaOrders.data)) {
+        alpacaOrders.data.forEach((order: any) => {
+          // Show actual order status and details
+          const isFilled = order.status === 'filled';
+          const price = order.filled_avg_price || order.limit_price || 0;
+          const filledQty = order.filled_qty || 0;
+          const totalQty = order.qty || 0;
+          
+          formattedTransactions.push({
+            id: order.id || `ALP-${Date.now()}`,
+            date: order.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+            type: 'TRADE',
+            amount: isFilled ? (order.side === 'buy' ? -(filledQty * price) : (filledQty * price)) : 0,
+            status: order.status || 'pending',  // Will show 'accepted', 'new', 'filled', etc.
+            description: `${order.side?.toUpperCase()} ${totalQty} ${order.symbol} ${filledQty < totalQty ? `(${filledQty}/${totalQty} filled)` : ''}`,
+            fundSource: 'Alpaca Trading Account'
+          });
+        });
+      }
+      
+      // Add Crossmint transactions
+      if (crossmintTxns.data && Array.isArray(crossmintTxns.data)) {
+        crossmintTxns.data.forEach((txn: any) => {
+          formattedTransactions.push({
+            id: txn.id || `CROSS-${Date.now()}`,
+            date: txn.date || new Date().toISOString().split('T')[0],
+            type: txn.type || 'SUBSIDY',
+            amount: txn.amount || 0,
+            status: txn.status || 'pending',
+            description: txn.description || 'Crossmint Transaction',
+            fundSource: txn.source || 'Crossmint'
+          });
+        });
+      }
+      
+      setTransactions(formattedTransactions);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      setTransactions([]);
+    }
   };
 
   const handlePlaceOrder = async () => {
@@ -272,38 +349,61 @@ const Trading: React.FC = () => {
       
       {/* Fund Balance Overview */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ bgcolor: '#e8f5e9' }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card sx={{ bgcolor: '#f3e5f5' }}>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Typography color="textSecondary" gutterBottom>
-                  Trading Account (Alpaca)
+                  Water Futures (Ethereum)
                 </Typography>
-                <CheckCircle color="success" />
+                <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" alt="ETH" width="24" />
               </Box>
               <Typography variant="h5">
-                ${balance?.tradingAccount.portfolio_value.toLocaleString() || '0'}
+                {balance?.ethBalance?.sepolia?.toFixed(2) || '0.00'} ETH
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                Portfolio Value
+                On Sepolia Testnet
               </Typography>
               <Divider sx={{ my: 1 }} />
-              <Typography variant="body2">
-                Cash: ${balance?.tradingAccount.cash.toLocaleString() || '0'}
-              </Typography>
-              <Typography variant="body2" color="success.main">
-                Buying Power: ${balance?.tradingAccount.buying_power.toLocaleString() || '0'}
+              <Typography variant="caption">
+                For water futures trading only
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card sx={{ bgcolor: '#e8f5e9' }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Typography color="textSecondary" gutterBottom>
+                  Stock Trading (Alpaca)
+                </Typography>
+                <AccountBalance color="success" />
+              </Box>
+              <Typography variant="h5">
+                ${balance?.tradingAccount.portfolio_value?.toLocaleString() || '0'}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                USD Portfolio
+              </Typography>
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="body2">
+                Cash: ${balance?.tradingAccount.cash?.toLocaleString() || '0'}
+              </Typography>
+              <Typography variant="body2" color="success.main">
+                Buying Power: ${balance?.tradingAccount.buying_power?.toLocaleString() || '0'}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ bgcolor: '#fff3e0' }}>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Typography color="textSecondary" gutterBottom>
-                  Subsidy Funds (Crossmint)
+                  Subsidies (Crossmint)
                 </Typography>
                 <Lock color="warning" />
               </Box>
@@ -311,11 +411,11 @@ const Trading: React.FC = () => {
                 ${(balance?.subsidyAccounts?.totalAvailable || 0).toLocaleString()}
               </Typography>
               <Typography variant="body2" color="warning.main">
-                🔒 Restricted - Cannot trade
+                🔒 From Uncle Sam's Wallet
               </Typography>
               <Divider sx={{ my: 1 }} />
               <Typography variant="caption">
-                Earmarked for approved uses only
+                Restricted - Approved uses only
               </Typography>
             </CardContent>
           </Card>
@@ -353,12 +453,12 @@ const Trading: React.FC = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Place Order (Trading Funds Only)
+                  Place Water Futures Order
                 </Typography>
                 
                 <Alert severity="info" sx={{ mb: 2 }}>
                   <Typography variant="caption">
-                    Only Alpaca trading account funds can be used. Subsidy funds are restricted.
+                    Water futures use Ethereum. Stock trading uses Alpaca USD. Subsidies are restricted.
                   </Typography>
                 </Alert>
 
@@ -409,7 +509,8 @@ const Trading: React.FC = () => {
               </Button>
               
               <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
-                Available Trading Funds: ${balance?.tradingAccount.buying_power.toLocaleString() || '0'}
+                Available ETH: {balance?.ethBalance?.sepolia?.toFixed(4) || '0.0000'} | 
+                Alpaca USD: ${balance?.tradingAccount.buying_power?.toLocaleString() || '0'}
               </Typography>
             </CardContent>
           </Card>
@@ -425,23 +526,23 @@ const Trading: React.FC = () => {
               <Grid container spacing={2}>
                 <Grid size={6}>
                   <Typography color="textSecondary" variant="subtitle2">
-                    Portfolio Value
+                    Portfolio Value (USD)
                   </Typography>
                   <Typography variant="h6">
-                    ${balance?.tradingAccount.portfolio_value.toLocaleString() || '0'}
+                    ${balance?.tradingAccount.portfolio_value?.toLocaleString() || '0'}
                   </Typography>
                 </Grid>
                 <Grid size={6}>
                   <Typography color="textSecondary" variant="subtitle2">
-                    Cash Balance
+                    Cash Balance (USD)
                   </Typography>
                   <Typography variant="h6">
-                    ${balance?.tradingAccount.cash.toLocaleString() || '0'}
+                    ${balance?.tradingAccount.cash?.toLocaleString() || '0'}
                   </Typography>
                 </Grid>
                 <Grid size={6}>
                   <Typography color="textSecondary" variant="subtitle2">
-                    Unrealized P&L
+                    Unrealized P&L (USD)
                   </Typography>
                   <Typography variant="h6" color={(balance?.tradingAccount.unrealized_pnl ?? 0) >= 0 ? "success.main" : "error.main"}>
                     {(balance?.tradingAccount.unrealized_pnl ?? 0) >= 0 ? '+' : ''}
@@ -450,7 +551,7 @@ const Trading: React.FC = () => {
                 </Grid>
                 <Grid size={6}>
                   <Typography color="textSecondary" variant="subtitle2">
-                    Realized P&L
+                    Realized P&L (USD)
                   </Typography>
                   <Typography variant="h6" color={(balance?.tradingAccount.realized_pnl ?? 0) >= 0 ? "success.main" : "error.main"}>
                     {(balance?.tradingAccount.realized_pnl ?? 0) >= 0 ? '+' : ''}
@@ -466,16 +567,7 @@ const Trading: React.FC = () => {
               <Typography variant="h6" gutterBottom>
                 Active Positions
               </Typography>
-              
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2">NQH25 - 10 Contracts</Typography>
-                <Typography color="success.main">+$80 (1.6%)</Typography>
-              </Box>
-              
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2">NQM25 - 5 Contracts</Typography>
-                <Typography color="error.main">-$30 (-1.2%)</Typography>
-              </Box>
+              <PositionsList />
             </CardContent>
           </Card>
         </Grid>
@@ -528,7 +620,13 @@ const Trading: React.FC = () => {
                         <Chip 
                           label={tx.status} 
                           size="small" 
-                          color={tx.status === 'completed' ? 'success' : 'default'}
+                          color={
+                            tx.status === 'filled' || tx.status === 'completed' ? 'success' : 
+                            tx.status === 'accepted' || tx.status === 'new' ? 'warning' :
+                            tx.status === 'cancelled' || tx.status === 'rejected' ? 'error' :
+                            'default'
+                          }
+                          variant={tx.status === 'accepted' ? 'outlined' : 'filled'}
                         />
                       </TableCell>
                     </TableRow>

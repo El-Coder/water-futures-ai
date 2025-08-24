@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Water Futures AI is an intelligent agricultural risk management platform that combines AI-powered futures trading, automated government subsidy processing, and predictive analytics for water scarcity management.
 
+## IMPORTANT: Dummy Data Removal
+
+**This repository contains dummy/hardcoded data that needs to be removed.** When working with this codebase:
+- Do NOT hardcode prices, quantities, or amounts
+- Do NOT use default values like "5 contracts" or "$15,000"
+- Always use actual user input and real API data
+- The chat should use the Alpaca MCP for real trading
+- The farmer agent makes direct calls to Crossmint for subsidy transfers from Uncle Sam's wallet
+- Subsidy amounts are determined by eligibility data, not hardcoded
+
 ## Development Commands
 
 ### Backend

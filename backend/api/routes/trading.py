@@ -56,8 +56,24 @@ async def get_positions():
 
 @router.get("/orders")
 async def get_orders(status: Optional[str] = None):
+    """Get all orders from Alpaca, including accepted but not filled"""
     try:
-        return await controller.get_orders(status)
+        # If no status specified, get all open orders (accepted, new, partially_filled)
+        if not status:
+            # Get all non-closed orders
+            orders = await controller.get_orders(None)
+            # Return all orders that aren't closed
+            return [o for o in orders if o.get('status') not in ['filled', 'cancelled', 'expired']]
+        else:
+            return await controller.get_orders(status)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/orders/all")
+async def get_all_orders():
+    """Get ALL orders including filled and cancelled"""
+    try:
+        return await controller.get_orders(None)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

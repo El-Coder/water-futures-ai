@@ -121,13 +121,23 @@ async def claim_subsidy(request: Dict[str, Any]) -> Dict[str, Any]:
     try:
         farmer_id = request.get("farmer_id")
         subsidy_type = request.get("subsidy_type", "drought_relief")
-        amount = request.get("amount", 15000)
+        
+        # Don't hardcode amount - get from eligibility
+        eligibility = await crossmint_service.check_eligibility(
+            farmer_id=farmer_id,
+            drought_severity=4,
+            location="California"
+        )
+        
+        amount = eligibility.get("total_available", 0)
+        if amount == 0:
+            raise HTTPException(status_code=400, detail="No subsidy available for this farmer")
         
         wallet_address = FARMER_WALLETS.get(farmer_id)
         if not wallet_address:
             raise HTTPException(status_code=404, detail=f"Farmer {farmer_id} not found")
         
-        # Process the subsidy payment
+        # Process the subsidy payment from Uncle Sam's wallet
         result = await crossmint_service.process_subsidy_payment(
             farmer_wallet=wallet_address,
             amount=amount,
@@ -135,7 +145,8 @@ async def claim_subsidy(request: Dict[str, Any]) -> Dict[str, Any]:
             metadata={
                 "farmer_id": farmer_id,
                 "claim_date": request.get("claim_date"),
-                "reason": request.get("reason", "Drought relief assistance")
+                "reason": request.get("reason", "Drought relief assistance"),
+                "source": "Uncle Sam's Crossmint Wallet"
             }
         )
         
@@ -145,6 +156,38 @@ async def claim_subsidy(request: Dict[str, Any]) -> Dict[str, Any]:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/farmer/transactions/{farmer_id}")
+async def get_farmer_transactions(farmer_id: str) -> list:
+    """Get farmer's transaction history from Crossmint"""
+    try:
+        wallet_address = FARMER_WALLETS.get(farmer_id)
+        if not wallet_address:
+            raise HTTPException(status_code=404, detail=f"Farmer {farmer_id} not found")
+        
+        # Get transactions from Crossmint
+        transactions = await crossmint_service.get_transaction_history(wallet_address)
+        
+        # Format for frontend
+        formatted_txns = []
+        for txn in transactions:
+            formatted_txns.append({
+                "id": txn.get("id", f"CROSS-{len(formatted_txns)}"),
+                "date": txn.get("timestamp", "").split("T")[0] if txn.get("timestamp") else "",
+                "type": "SUBSIDY" if txn.get("type") == "incoming" else "SUBSIDY_USAGE",
+                "amount": txn.get("amount", 0),
+                "status": txn.get("status", "completed"),
+                "description": txn.get("description", "Crossmint Transaction"),
+                "source": "Uncle Sam's Wallet via Crossmint"
+            })
+        
+        return formatted_txns
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching transactions: {e}")
+        return []
 
 async def _get_available_subsidies(farmer_id: str) -> int:
     """Helper function to get available subsidies for a farmer"""

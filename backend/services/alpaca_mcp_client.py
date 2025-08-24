@@ -80,16 +80,11 @@ class AlpacaMCPClient:
             
         except Exception as e:
             print(f"Alpaca order error: {e}")
-            # Return simulated success for demo
+            # Return error instead of simulated success
             return {
-                "success": True,
-                "order_id": f"DEMO-{symbol}-{quantity}",
-                "symbol": symbol,
-                "quantity": quantity,
-                "side": side,
-                "status": "simulated",
-                "message": f"[DEMO MODE] Simulated order for {quantity} {symbol} water futures",
-                "error": str(e)
+                "success": False,
+                "error": str(e),
+                "message": "Failed to place order with Alpaca"
             }
     
     async def get_account_info(self) -> Dict[str, Any]:
@@ -111,13 +106,13 @@ class AlpacaMCPClient:
             }
         except Exception as e:
             print(f"Account info error: {e}")
-            # Return demo account data
+            # Return zeros instead of dummy data
             return {
-                "buying_power": 100000.00,
-                "cash": 95000.00,
-                "portfolio_value": 125000.00,
-                "status": "ACTIVE",
-                "demo_mode": True
+                "buying_power": 0.00,
+                "cash": 0.00,
+                "portfolio_value": 0.00,
+                "status": "ERROR",
+                "error": str(e)
             }
     
     async def get_positions(self) -> List[Dict[str, Any]]:
@@ -141,18 +136,8 @@ class AlpacaMCPClient:
             ]
         except Exception as e:
             print(f"Positions error: {e}")
-            # Return demo positions
-            return [
-                {
-                    "symbol": "SPY (Water Futures Proxy)",
-                    "qty": 10,
-                    "avg_entry_price": 500.00,
-                    "market_value": 5080.00,
-                    "unrealized_pl": 80.00,
-                    "unrealized_plpc": 1.6,
-                    "side": "long"
-                }
-            ]
+            # Return empty array instead of dummy positions
+            return []
     
     async def get_market_quote(self, symbol: str) -> Dict[str, Any]:
         """
@@ -162,22 +147,16 @@ class AlpacaMCPClient:
             # Map water futures to tradeable symbol
             trade_symbol = {"NQH25": "SPY", "NQM25": "QQQ"}.get(symbol, "SPY")
             
-            # Would use Alpaca market data API here
-            # For demo, return mock data
+            # TODO: Implement real Alpaca market data API call
             return {
                 "symbol": symbol,
                 "trade_symbol": trade_symbol,
-                "bid": 507.50,
-                "ask": 508.50,
-                "last": 508.00,
-                "volume": 125000,
-                "timestamp": "2024-12-13T14:30:00Z"
+                "error": "Market data not available"
             }
         except Exception as e:
             return {
                 "symbol": symbol,
-                "error": str(e),
-                "demo_price": 508.00
+                "error": str(e)
             }
     
     async def call_mcp_server(self, method: str, params: Dict[str, Any]) -> Dict[str, Any]:

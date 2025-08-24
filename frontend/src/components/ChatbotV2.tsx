@@ -45,6 +45,17 @@ interface Message {
   suggestedActions?: any[];
   isAgentAction?: boolean;
   actionType?: 'trade' | 'subsidy' | 'info';
+  pendingAction?: any;
+}
+
+interface PendingTrade {
+  type: 'trade' | 'subsidy';
+  action: string;
+  side?: string;
+  quantity?: number;
+  symbol?: string;
+  amount?: number;
+  subsidy_type?: string;
 }
 
 const ChatbotV2: React.FC = () => {
@@ -62,6 +73,8 @@ const ChatbotV2: React.FC = () => {
   const [agentMode, setAgentMode] = useState(false);
   const [showAgentWarning, setShowAgentWarning] = useState(false);
   const [pendingAgentMode, setPendingAgentMode] = useState(false);
+  const [showTradeConfirmation, setShowTradeConfirmation] = useState(false);
+  const [pendingTrade, setPendingTrade] = useState<PendingTrade | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -158,16 +171,22 @@ const ChatbotV2: React.FC = () => {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // If agent executed an action, show confirmation
-      if (response.data.executed && agentMode) {
-        const confirmationMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          text: `✅ Action Executed: ${response.data.executionDetails}`,
-          sender: 'assistant',
-          timestamp: new Date(),
-          isAgentAction: true,
-        };
-        setMessages((prev) => [...prev, confirmationMessage]);
+      // If agent wants to execute an action, show confirmation dialog
+      if (response.data.isAgentAction && agentMode && response.data.executionDetails) {
+        // Extract trade details from response
+        const details = response.data.executionDetails[0] || {};
+        setPendingTrade({
+          type: response.data.actionType,
+          action: response.data.actionType === 'trade' 
+            ? `${details.side || 'BUY'} ${details.quantity || ''} ${details.symbol || 'NQH25'}`
+            : `Process ${details.type || 'drought relief'} subsidy`,
+          side: details.side,
+          quantity: details.quantity,
+          symbol: details.symbol,
+          amount: details.amount,
+          subsidy_type: details.type
+        });
+        setShowTradeConfirmation(true);
       }
     } catch (error) {
       console.error('Chat error:', error);
@@ -191,24 +210,47 @@ const ChatbotV2: React.FC = () => {
       return;
     }
 
+    // Show confirmation dialog instead of executing immediately
+    setPendingTrade(action);
+    setShowTradeConfirmation(true);
+  };
+
+  const confirmTrade = async () => {
+    if (!pendingTrade) return;
+    
+    setShowTradeConfirmation(false);
     setLoading(true);
+    
     try {
       const response = await axios.post(`${API_CONFIG.CHAT_URL}/api/v1/agent/action`, {
-        action,
+        action: pendingTrade,
         context: {
           agentModeEnabled: true,
         },
       });
 
+      if (response.data.response) {
+        addSystemMessage(response.data.response);
+      } else {
+        addSystemMessage(
+          `✅ ${pendingTrade.type === 'trade' ? 'Trade' : 'Subsidy'} Executed Successfully!`
+        );
+      }
+    } catch (error: any) {
+      console.error('Trade execution error:', error);
       addSystemMessage(
-        `✅ ${action.type === 'trade' ? 'Trade' : 'Subsidy'} Executed:\n` +
-        `${response.data.details}`
+        `❌ Action failed: ${error.response?.data?.detail?.message || error.message || 'Unknown error'}`
       );
-    } catch (error) {
-      addSystemMessage(`❌ Action failed: ${error}`);
     } finally {
       setLoading(false);
+      setPendingTrade(null);
     }
+  };
+
+  const cancelTrade = () => {
+    setShowTradeConfirmation(false);
+    setPendingTrade(null);
+    addSystemMessage("Trade cancelled by user.");
   };
 
   const handleQuickAction = (action: string) => {
@@ -482,6 +524,63 @@ const ChatbotV2: React.FC = () => {
           </Box>
         </Paper>
       </Collapse>
+
+      {/* Trade Confirmation Dialog */}
+      <Dialog
+        open={showTradeConfirmation}
+        onClose={cancelTrade}
+        aria-labelledby="trade-confirmation-dialog"
+      >
+        <DialogTitle id="trade-confirmation-dialog">
+          <Box display="flex" alignItems="center">
+            <WarningIcon color="warning" sx={{ mr: 1 }} />
+            Confirm {pendingTrade?.type === 'trade' ? 'Trade' : 'Subsidy'} Execution
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            This is a REAL transaction that will use REAL MONEY
+          </Alert>
+          <DialogContentText>
+            Are you sure you want to execute this {pendingTrade?.type}?
+          </DialogContentText>
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+            <Typography variant="body2" gutterBottom>
+              <strong>Action:</strong> {pendingTrade?.action}
+            </Typography>
+            {pendingTrade?.type === 'trade' && (
+              <>
+                {pendingTrade?.quantity && (
+                  <Typography variant="body2" gutterBottom>
+                    <strong>Quantity:</strong> {pendingTrade.quantity} contracts
+                  </Typography>
+                )}
+                {pendingTrade?.symbol && (
+                  <Typography variant="body2" gutterBottom>
+                    <strong>Symbol:</strong> {pendingTrade.symbol}
+                  </Typography>
+                )}
+                <Typography variant="body2" gutterBottom>
+                  <strong>Estimated Cost:</strong> ${(pendingTrade.quantity || 1) * 508}
+                </Typography>
+              </>
+            )}
+            {pendingTrade?.type === 'subsidy' && (
+              <Typography variant="body2" gutterBottom>
+                <strong>Amount:</strong> ${pendingTrade.amount || 'To be determined'}
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelTrade} color="primary" variant="contained">
+            Cancel
+          </Button>
+          <Button onClick={confirmTrade} color="error" variant="outlined" disabled={loading}>
+            {loading ? <CircularProgress size={20} /> : 'Confirm & Execute'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Agent Mode Warning Dialog */}
       <Dialog

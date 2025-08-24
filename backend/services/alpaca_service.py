@@ -88,16 +88,17 @@ class AlpacaService:
             
         except Exception as e:
             logger.error(f"Error getting account info: {e}")
-            # Return demo data on error
+            # Return zeros instead of dummy data
             return {
-                "portfolio_value": 125000.00,
-                "cash": 95000.00,
-                "buying_power": 100000.00,
-                "daily_pnl": 250.00,
-                "total_pnl": 5000.00,
-                "status": "ACTIVE",
-                "demo_mode": True,
-                "error": str(e)
+                "portfolio_value": 0.00,
+                "cash": 0.00,
+                "buying_power": 0.00,
+                "daily_pnl": 0.00,
+                "total_pnl": 0.00,
+                "status": "ERROR",
+                "demo_mode": False,
+                "error": str(e),
+                "message": "Unable to fetch account data from Alpaca"
             }
     
     async def get_positions(self) -> List[Dict[str, Any]]:
@@ -115,52 +116,42 @@ class AlpacaService:
             
         except Exception as e:
             logger.error(f"Error getting positions: {e}")
-            # Return demo positions on error
-            return [
-                {
-                    "symbol": "SPY (Water Futures Proxy)",
-                    "qty": 10,
-                    "avg_entry_price": 500.00,
-                    "market_value": 5080.00,
-                    "unrealized_pl": 80.00,
-                    "unrealized_plpc": 1.6,
-                    "side": "long"
-                }
-            ]
+            # Return empty array instead of dummy data
+            return []
     
     async def get_orders(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
         """
-        Get orders from Alpaca
+        Get orders from Alpaca - including accepted but not filled
         """
         try:
-            # Check cached orders first
-            cached_orders = list(self.order_cache.values())
+            # Fetch ALL orders from Alpaca (including accepted, new, partially_filled)
+            orders = await self.client.get_orders(status)
             
-            if status:
-                # Filter by status if provided
-                cached_orders = [
-                    order for order in cached_orders 
-                    if order.get("status", "").lower() == status.lower()
-                ]
+            # Format orders for frontend
+            formatted_orders = []
+            for order in orders:
+                formatted_orders.append({
+                    "id": order.get("id"),
+                    "symbol": order.get("symbol"),
+                    "qty": order.get("qty"),
+                    "side": order.get("side"),
+                    "status": order.get("status"),  # accepted, new, filled, cancelled, etc.
+                    "created_at": order.get("created_at"),
+                    "submitted_at": order.get("submitted_at"),
+                    "filled_at": order.get("filled_at"),
+                    "filled_qty": order.get("filled_qty", 0),
+                    "filled_avg_price": order.get("filled_avg_price"),
+                    "order_type": order.get("order_type"),
+                    "time_in_force": order.get("time_in_force"),
+                    "limit_price": order.get("limit_price"),
+                    "stop_price": order.get("stop_price")
+                })
             
-            # In production, would also fetch from Alpaca API
-            # orders = await self.client.get_orders(status)
-            
-            return cached_orders if cached_orders else [
-                {
-                    "id": "DEMO-001",
-                    "symbol": "NQH25",
-                    "quantity": 5,
-                    "side": "BUY",
-                    "status": status or "filled",
-                    "created_at": "2024-12-13T10:00:00Z",
-                    "filled_at": "2024-12-13T10:00:05Z",
-                    "filled_price": 508.00
-                }
-            ]
+            return formatted_orders
             
         except Exception as e:
             logger.error(f"Error getting orders: {e}")
+            # Return empty array - no dummy data
             return []
     
     async def cancel_order(self, order_id: str) -> Dict[str, Any]:

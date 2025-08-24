@@ -136,28 +136,46 @@ async def execute_agent_action(request: dict):
         context = request.get("context", {})
         
         if action.get("type") == "trade":
+            # Get the actual values from the action object
             result = await mcp_connector._execute_trade_action(
-                message=f"Execute trade: {action}",
+                message=f"Execute trade: {action.get('action', '')}",
                 intent={
                     "primary": "TRADE_EXECUTE",
-                    "action": action.get("action", "BUY"),
-                    "quantity": action.get("contracts", 5),
-                    "contract_code": "NQH25"
+                    "action": action.get("side", "BUY"),  # Get side from action
+                    "quantity": action.get("quantity", action.get("contracts", 1)),  # Get actual quantity
+                    "contract_code": action.get("symbol", "NQH25")
                 },
                 context=context
             )
         elif action.get("type") == "subsidy":
             result = await mcp_connector._execute_subsidy_action(
-                message=f"Process subsidy: {action}",
-                intent={"primary": "SUBSIDY_CLAIM"},
+                message=f"Process subsidy: {action.get('action', '')}",
+                intent={
+                    "primary": "SUBSIDY_CLAIM",
+                    "subsidy_type": action.get("subsidy_type", "drought_relief"),
+                    "amount": action.get("amount", 15000)
+                },
                 context=context
             )
         else:
-            result = {"error": "Unknown action type"}
+            result = {"error": f"Unknown action type: {action.get('type')}"}
         
         return result
     except Exception as e:
-        return {"error": str(e)}
+        # Log the error for debugging
+        print(f"Error in execute_agent_action: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return HTTP 500 with proper error response
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": str(e),
+                "message": "Failed to execute action",
+                "executed": False
+            }
+        )
 
 # Weather endpoints
 @app.post("/api/v1/weather/get")

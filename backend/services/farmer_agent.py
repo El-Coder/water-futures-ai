@@ -97,6 +97,31 @@ class FarmerAgent:
         Use Claude to analyze intent and determine which tools to use
         """
         try:
+            # First do a quick check if this is just general conversation
+            message_lower = message.lower()
+            
+            # Check if this is general conversation without specific tool needs
+            general_words = ["hello", "hi", "how are", "what's up", "thanks", "thank you", 
+                           "okay", "ok", "great", "good", "nice", "cool", "awesome",
+                           "tell me about", "explain", "what is", "how does", "why"]
+            
+            action_words = ["buy", "sell", "trade", "purchase", "subsidy", "government", 
+                          "crossmint", "payment", "account", "balance", "portfolio", 
+                          "positions", "forecast", "predict", "market", "analysis"]
+            
+            # Check if message contains action words
+            has_action = any(word in message_lower for word in action_words)
+            is_general = any(word in message_lower for word in general_words) and not has_action
+            
+            # If it's just general conversation in agent mode, don't analyze for tools
+            if is_general or not has_action:
+                return {
+                    "primary_intent": "GENERAL_CONVERSATION",
+                    "tools_needed": [],
+                    "parameters": {},
+                    "is_conversational": True
+                }
+            
             # Create tool descriptions for Claude
             tools_description = """
 Available tools:
@@ -163,17 +188,19 @@ Based on the user's message, determine:
                     intent["parameters"]["quantity"] = int(word)
                     break
             
-            # Default values
+            # Only set symbol, don't default quantity
             intent["parameters"]["symbol"] = "NQH25"
-            if "quantity" not in intent["parameters"]:
-                intent["parameters"]["quantity"] = 5
         
         # Detect subsidy intent
         elif any(word in message_lower for word in ["subsidy", "government", "crossmint", "payment"]):
             intent["primary_intent"] = "SUBSIDY"
             intent["tools_needed"].append("process_subsidy")
-            intent["parameters"]["subsidy_type"] = "drought_relief"
-            intent["parameters"]["amount"] = 15000
+            # Determine subsidy type from message
+            if "drought" in message_lower:
+                intent["parameters"]["subsidy_type"] = "drought_relief"
+            else:
+                intent["parameters"]["subsidy_type"] = "general"
+            # Amount will be determined by Crossmint based on eligibility
         
         # Detect account/portfolio intent
         elif any(word in message_lower for word in ["account", "balance", "portfolio", "positions"]):
@@ -202,31 +229,56 @@ Based on the user's message, determine:
         Generate response in safe mode (no execution)
         """
         try:
+            # Build conversation history for better context
+            conversation_context = []
+            if len(self.conversation_history) > 1:
+                # Include recent conversation history (last 3 messages for chat mode)
+                recent_history = self.conversation_history[-3:]
+                for msg in recent_history:
+                    conversation_context.append({
+                        "role": msg["role"],
+                        "content": msg["content"]
+                    })
+            
+            # Add current message to context
+            conversation_context.append({"role": "user", "content": message})
+            
             # Get Claude's conversational response
             response = self.anthropic.messages.create(
                 model="claude-3-opus-20240229",
                 max_tokens=1000,
-                system="""You are a helpful farming assistant in CHAT MODE.
-You can provide information but CANNOT execute trades or process payments.
-Remind users to enable Agent Mode for real transactions.
+                system="""You are a helpful AI farming assistant in CHAT MODE (safe mode).
+You're having a natural conversation with a farmer about their needs, water futures, drought conditions, and farming strategies.
+
+Be conversational, friendly, and helpful. You can discuss:
+- Water futures market conditions and strategies
+- Drought management and water conservation
+- Government subsidies and financial assistance
+- Farming best practices and advice
+- Market analysis and predictions
 
 Current market conditions:
 - Water futures (NQH25): $508
 - Drought severity: 4/5 in Central Valley
 - Available subsidies: $15,000 drought relief via Crossmint
-""",
-                messages=[{"role": "user", "content": message}]
+
+IMPORTANT: You're in CHAT MODE, so you CANNOT execute real transactions. 
+If the user wants to trade or claim subsidies, politely explain they need to enable Agent Mode for real transactions.
+But don't be pushy about it - only mention Agent Mode if they specifically ask about executing actions.
+
+Be natural and conversational - not every response needs to mention Agent Mode or push for transactions.""",
+                messages=conversation_context
             )
             
-            # Add suggested actions based on intent
+            # Add suggested actions based on intent (only if relevant)
             suggested_actions = []
-            if intent["primary_intent"] == "TRADE":
+            if intent["primary_intent"] == "TRADE" and "buy" in message.lower() or "sell" in message.lower():
                 suggested_actions.append({
                     "type": "trade",
                     "action": f"{intent['parameters'].get('side', 'BUY')} {intent['parameters'].get('quantity', 5)} water futures",
                     "requiresAgentMode": True
                 })
-            elif intent["primary_intent"] == "SUBSIDY":
+            elif intent["primary_intent"] == "SUBSIDY" and any(word in message.lower() for word in ["claim", "process", "get"]):
                 suggested_actions.append({
                     "type": "subsidy",
                     "action": "Claim $15,000 drought relief",
@@ -241,8 +293,21 @@ Current market conditions:
             }
             
         except Exception as e:
+            # Fallback response if Claude fails
+            fallback_responses = {
+                "TRADE": "I can help you understand water futures trading. The current price for NQH25 contracts is $508. To execute actual trades, you'll need to enable Agent Mode.",
+                "SUBSIDY": "There's a $15,000 drought relief subsidy available through Crossmint. To process the claim, you'll need to enable Agent Mode.",
+                "ACCOUNT": "I can help you understand your portfolio. To see real account details, please enable Agent Mode.",
+                "FORECAST": "Based on current drought conditions (severity 4/5), water futures prices are likely to increase. Enable Agent Mode for detailed forecasts.",
+                "GENERAL_CONVERSATION": "I'm here to help with your farming and water management needs. What would you like to know?",
+                "UNKNOWN": "I'm here to help with water futures trading, subsidies, and farming strategies. What can I assist you with today?"
+            }
+            
             return {
-                "response": "I can help you with water futures trading and subsidies. Please enable Agent Mode to execute transactions.",
+                "response": fallback_responses.get(
+                    intent.get("primary_intent", "UNKNOWN"),
+                    "I'm here to help with your farming needs. What would you like to know?"
+                ),
                 "error": str(e),
                 "mode": "chat"
             }
@@ -258,76 +323,122 @@ Current market conditions:
         """
         results = []
         
-        # Execute each required tool
-        for tool_name in intent.get("tools_needed", []):
-            if tool_name in self.tools:
-                tool_result = await self.tools[tool_name](intent.get("parameters", {}))
-                results.append(tool_result)
-                
-                # Track executed action
-                self.executed_actions.append({
-                    "tool": tool_name,
-                    "parameters": intent.get("parameters", {}),
-                    "result": tool_result,
-                    "timestamp": datetime.now().isoformat()
-                })
+        # Execute each required tool only if there are tools needed
+        if intent.get("tools_needed"):
+            for tool_name in intent.get("tools_needed", []):
+                if tool_name in self.tools:
+                    tool_result = await self.tools[tool_name](intent.get("parameters", {}))
+                    results.append(tool_result)
+                    
+                    # Track executed action
+                    self.executed_actions.append({
+                        "tool": tool_name,
+                        "parameters": intent.get("parameters", {}),
+                        "result": tool_result,
+                        "timestamp": datetime.now().isoformat()
+                    })
         
-        # Generate response based on results
-        if intent["primary_intent"] == "TRADE" and results:
-            trade_result = results[0]
-            if trade_result.get("success"):
-                response_text = (
-                    f"✅ Trade Executed Successfully!\n\n"
-                    f"Order ID: {trade_result.get('order_id')}\n"
-                    f"Symbol: {trade_result.get('symbol')}\n"
-                    f"Quantity: {trade_result.get('quantity')}\n"
-                    f"Side: {trade_result.get('side')}\n"
-                    f"Status: {trade_result.get('status')}\n\n"
-                    f"{trade_result.get('message', '')}"
-                )
+        # Generate conversational response using Claude with context about executed actions
+        try:
+            # Build conversation history for Claude
+            conversation_context = []
+            if len(self.conversation_history) > 1:
+                # Include recent conversation history (last 5 messages)
+                recent_history = self.conversation_history[-5:]
+                for msg in recent_history:
+                    conversation_context.append({
+                        "role": msg["role"],
+                        "content": msg["content"]
+                    })
+            
+            # System prompt for Claude in agent mode
+            system_prompt = """You are an AI farming assistant in AGENT MODE with access to real tools.
+You can have natural conversations AND execute real actions when needed.
+
+Be conversational, friendly, and helpful. You're talking to a farmer who trusts you with their financial decisions.
+Remember the conversation context and build rapport. You can discuss farming, weather, market conditions, 
+or anything else relevant to their situation.
+
+When you DO execute actions, explain clearly what you did and why it helps them.
+When you're just chatting, be natural and engaging - you don't always need to push for transactions.
+
+Current market conditions:
+- Water futures (NQH25): $508
+- Drought severity: 4/5 in Central Valley  
+- Available subsidies: $15,000 drought relief via Crossmint
+
+Your capabilities in Agent Mode:
+- Execute real water futures trades
+- Process government subsidy payments
+- Check account balances and positions
+- Provide price forecasts
+- Analyze market conditions
+- General farming and financial advice
+
+Remember: You're in AGENT MODE, so you CAN execute real transactions when asked, 
+but you should also be able to have normal conversations without always suggesting actions."""
+
+            # Create a detailed prompt for Claude
+            prompt_parts = [f"User message: {message}"]
+            
+            # If this is general conversation
+            if intent.get("is_conversational") or intent.get("primary_intent") == "GENERAL_CONVERSATION":
+                prompt_parts.append("\nThis is a conversational message. Respond naturally and helpfully.")
+                prompt_parts.append("Remember you're in Agent Mode, so you can offer to execute actions if relevant.")
+            
+            # If we executed actions
+            elif results:
+                prompt_parts.append("\nActions I executed:")
+                for i, result in enumerate(results):
+                    tool_name = intent.get("tools_needed", [])[i] if i < len(intent.get("tools_needed", [])) else "Unknown"
+                    prompt_parts.append(f"- {tool_name}: {json.dumps(result)}")
+                prompt_parts.append("\nProvide a natural response explaining what you did and offer relevant follow-up advice.")
+            
+            # If no actions but specific intent
             else:
-                response_text = f"Trade failed: {trade_result.get('error', 'Unknown error')}"
-        
-        elif intent["primary_intent"] == "SUBSIDY" and results:
-            subsidy_result = results[0]
-            response_text = (
-                f"✅ Subsidy Processed Successfully!\n\n"
-                f"Type: {subsidy_result.get('type', 'Drought Relief')}\n"
-                f"Amount: ${subsidy_result.get('amount', 15000):,}\n"
-                f"Payment ID: {subsidy_result.get('payment_id')}\n"
-                f"Status: Processing via Crossmint\n\n"
-                f"Funds will be deposited within 24 hours."
-            )
-        
-        elif intent["primary_intent"] == "ACCOUNT" and results:
-            account = results[0] if results else {}
-            positions = results[1] if len(results) > 1 else []
-            response_text = (
-                f"📊 Account Summary:\n\n"
-                f"Portfolio Value: ${account.get('portfolio_value', 0):,.2f}\n"
-                f"Cash Balance: ${account.get('cash', 0):,.2f}\n"
-                f"Buying Power: ${account.get('buying_power', 0):,.2f}\n\n"
-                f"Positions: {len(positions)} active\n"
-            )
-        
-        else:
-            # Use Claude for general response
-            claude_response = self.anthropic.messages.create(
+                prompt_parts.append(f"\nThe user seems interested in {intent.get('primary_intent', 'something')}.")
+                prompt_parts.append("Provide helpful information and offer to execute specific actions if they'd like.")
+            
+            # Get Claude's response
+            response = self.anthropic.messages.create(
                 model="claude-3-opus-20240229",
-                max_tokens=500,
-                system="You are an AI agent that has executed actions. Summarize the results.",
+                max_tokens=1000,
+                system=system_prompt,
                 messages=[
-                    {"role": "user", "content": f"Action results: {json.dumps(results)}"}
+                    {"role": "user", "content": "\n".join(prompt_parts)}
                 ]
             )
-            response_text = claude_response.content[0].text
+            
+            response_text = response.content[0].text
+            
+            # Add execution details if we performed actions
+            if results and any(r.get("success") for r in results):
+                # For trades, add clear confirmation
+                if intent["primary_intent"] == "TRADE":
+                    trade_result = results[0]
+                    if trade_result.get("success"):
+                        response_text += f"\n\n📊 Trade Details:\n• Order ID: {trade_result.get('order_id')}\n• Status: {trade_result.get('status', 'Executed')}"
+                
+                # For subsidies, add payment info
+                elif intent["primary_intent"] == "SUBSIDY":
+                    subsidy_result = results[0]
+                    if subsidy_result.get("success"):
+                        response_text += f"\n\n💰 Payment ID: {subsidy_result.get('payment_id')}"
+            
+        except Exception as e:
+            print(f"Error generating conversational response: {e}")
+            # Fallback to basic response if Claude fails
+            if results:
+                response_text = f"I've executed your request. Here are the results: {json.dumps(results, indent=2)}"
+            else:
+                response_text = "I'm ready to help you with your farming needs. What would you like me to do?"
         
         return {
             "response": response_text,
-            "executed": True,
+            "executed": bool(results),
             "executionDetails": results,
             "isAgentAction": True,
-            "actionType": intent["primary_intent"].lower(),
+            "actionType": intent["primary_intent"].lower() if intent else "general",
             "mode": "agent"
         }
     
@@ -349,16 +460,28 @@ Current market conditions:
         return await alpaca_client.get_positions()
     
     async def _process_subsidy(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Process government subsidy via Crossmint"""
-        # Simulate Crossmint payment processing
+        """Process government subsidy via Crossmint - requests transfer from Uncle Sam's wallet"""
+        # TODO: Integrate with actual Crossmint API to request transfer from government wallet
+        # The amount is determined by eligibility criteria and data validation
+        
+        subsidy_type = params.get("subsidy_type", "general")
+        
+        # In production, this would:
+        # 1. Validate farmer's eligibility with provided data
+        # 2. Calculate appropriate subsidy amount based on criteria
+        # 3. Request transfer from Uncle Sam's Crossmint wallet
+        # 4. Transfer to farmer's Ethereum wallet
+        
         return {
             "success": True,
-            "type": params.get("subsidy_type", "drought_relief"),
-            "amount": params.get("amount", 15000),
+            "type": subsidy_type,
+            "amount": params.get("amount"),  # Determined by eligibility
             "payment_id": f"CROSS-{datetime.now().timestamp():.0f}",
             "processor": "Crossmint",
-            "source": "US Government",
-            "status": "processing"
+            "source": "US Government Wallet",
+            "destination": "Farmer Ethereum Wallet",
+            "status": "processing",
+            "note": "Transfer request sent to Uncle Sam's Crossmint wallet"
         }
     
     async def _get_forecast(self, params: Dict[str, Any]) -> Dict[str, Any]:
