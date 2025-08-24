@@ -156,7 +156,8 @@ Based on the user's message, determine:
             
         except Exception as e:
             print(f"Intent analysis error: {e}")
-            return {"primary_intent": "UNKNOWN", "tools_needed": [], "error": str(e)}
+            # Fallback to manual parsing when Claude fails
+            return self._parse_claude_intent("", message)
     
     def _parse_claude_intent(self, claude_response: str, original_message: str) -> Dict[str, Any]:
         """
