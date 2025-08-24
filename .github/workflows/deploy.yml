@@ -167,8 +167,8 @@ jobs:
         # Backend API URL (Cloud Run service)
         VITE_API_URL=${{ steps.backend-url.outputs.url }}
         
-        # MCP Server URL (Cloud Run service)
-        VITE_MCP_URL=${{ steps.service-urls.outputs.mcp_url }}
+        # MCP Server URL (Using backend service since MCP routes are part of backend)
+        VITE_MCP_URL=${{ steps.backend-url.outputs.url }}
         
         # Chat Service URL (Cloud Run service)
         VITE_CHAT_URL=${{ steps.service-urls.outputs.chat_url }}

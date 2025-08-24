@@ -124,10 +124,73 @@ const Trading: React.FC = () => {
 
   const fetchBalance = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.MCP_URL}/api/mcp/farmer/balance/farmer-ted`);
-      setBalance(response.data);
+      const response = await axios.get(`${API_CONFIG.API_URL}/api/mcp/farmer/balance/farmer-ted`);
+      // Transform the backend response to match the frontend interface
+      const data = response.data;
+      setBalance({
+        tradingAccount: data.tradingAccount || {
+          cash: 0,
+          portfolio_value: 0,
+          buying_power: 0,
+          unrealized_pnl: 0,
+          realized_pnl: 0,
+          canUseForTrading: true,
+          message: "Trading account active"
+        },
+        subsidyAccounts: {
+          totalSubsidies: data.subsidyAccounts?.totalSubsidies || 0,
+          totalAvailable: data.subsidyAccounts?.totalAvailable || 0,
+          accounts: data.subsidyAccounts?.drought_relief ? {
+            drought_relief: {
+              amount: data.subsidyAccounts.drought_relief.balance || 0,
+              available: data.subsidyAccounts.drought_relief.available || 0,
+              used: 0,
+              restrictions: data.subsidyAccounts.drought_relief.restrictions || ""
+            },
+            water_conservation: {
+              amount: data.subsidyAccounts.water_conservation?.balance || 0,
+              available: data.subsidyAccounts.water_conservation?.available || 0,
+              used: 0,
+              restrictions: data.subsidyAccounts.water_conservation?.restrictions || ""
+            }
+          } : {},
+          canUseForTrading: false,
+          message: data.subsidyAccounts?.cannotUseMessage || "Government subsidies cannot be used for speculative trading"
+        },
+        ethBalance: data.ethBalance,
+        totalBalance: data.totalBalance || {
+          allFunds: 0,
+          availableForTrading: 0,
+          earmarkedForSpecificUse: 0
+        },
+        complianceStatus: data.complianceStatus
+      });
     } catch (error) {
       console.error('Error fetching balance:', error);
+      // Set default values on error
+      setBalance({
+        tradingAccount: {
+          cash: 0,
+          portfolio_value: 0,
+          buying_power: 0,
+          unrealized_pnl: 0,
+          realized_pnl: 0,
+          canUseForTrading: true,
+          message: "Unable to fetch trading account data"
+        },
+        subsidyAccounts: {
+          totalSubsidies: 0,
+          totalAvailable: 0,
+          accounts: {},
+          canUseForTrading: false,
+          message: "Government subsidies cannot be used for speculative trading"
+        },
+        totalBalance: {
+          allFunds: 0,
+          availableForTrading: 0,
+          earmarkedForSpecificUse: 0
+        }
+      });
     } finally {
       setBalanceLoading(false);
     }
@@ -245,7 +308,7 @@ const Trading: React.FC = () => {
                 <Lock color="warning" />
               </Box>
               <Typography variant="h5">
-                ${balance?.subsidyAccounts.totalAvailable.toLocaleString() || '0'}
+                ${(balance?.subsidyAccounts?.totalAvailable || 0).toLocaleString()}
               </Typography>
               <Typography variant="body2" color="warning.main">
                 🔒 Restricted - Cannot trade
@@ -487,7 +550,8 @@ const Trading: React.FC = () => {
               </Typography>
             </Alert>
           </Grid>
-          {Object.entries(balance?.subsidyAccounts.accounts || {}).map(([type, details]) => (
+          {balance?.subsidyAccounts?.accounts && typeof balance.subsidyAccounts.accounts === 'object' ? 
+            Object.entries(balance.subsidyAccounts.accounts).map(([type, details]: [string, any]) => (
             <Grid size={{ xs: 12, md: 6 }} key={type}>
               <Card>
                 <CardContent>
@@ -499,7 +563,7 @@ const Trading: React.FC = () => {
                       Total Amount
                     </Typography>
                     <Typography>
-                      ${details.amount.toLocaleString()}
+                      ${(details?.amount || 0).toLocaleString()}
                     </Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between" mb={2}>
@@ -507,7 +571,7 @@ const Trading: React.FC = () => {
                       Available
                     </Typography>
                     <Typography color="success.main">
-                      ${details.available.toLocaleString()}
+                      ${(details?.available || 0).toLocaleString()}
                     </Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between" mb={2}>
@@ -527,7 +591,7 @@ const Trading: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-          ))}
+          )) : null}
         </Grid>
       )}
 
