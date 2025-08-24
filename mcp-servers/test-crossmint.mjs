@@ -8,7 +8,7 @@ console.log('API Key:', process.env.CROSSMINT_API_KEY ? 'Set' : 'Not Set');
 async function testCrossmint() {
   try {
     // Farmer Ted's wallet address
-    const walletAddress = '0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15';
+    const walletAddress = process.env.FARMER_TED_WALLET_ADDRESS;
     
     console.log('\n--- Getting Wallet Balance ---');
     console.log('Wallet Address:', walletAddress);

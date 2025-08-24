@@ -121,11 +121,8 @@ class ForecastService:
                 
         except Exception as e:
             logger.error(f"Error in Vertex AI forecast: {e}")
-            # Use fallback forecast
-            return await self._fallback_forecast(
-                contract_code, current_price, horizon_days,
-                drought_metrics, include_confidence
-            )
+            # RE-RAISE THE ERROR - NO FALLBACK!
+            raise Exception(f"Vertex AI forecast failed: {e}")
     
     def _generate_horizon_forecast(
         self, 

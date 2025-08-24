@@ -262,7 +262,7 @@ app.get('/api/mcp/farmer/balance/:farmerId', async (req, res) => {
         accounts: subsidyBalance,
         canUseForTrading: false,
         message: '🔒 USDC funds from Uncle Sam are RESTRICTED - Cannot be used for trading',
-        walletAddress: '0x639A356DB809fA45A367Bc71A6D766dF2e9C6D15',
+        walletAddress: process.env.FARMER_TED_WALLET_ADDRESS,
         currency: 'USDC on Ethereum Sepolia'
       },
       

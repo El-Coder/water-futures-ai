@@ -165,22 +165,45 @@ class CrossmintService:
         
         try:
             async with httpx.AsyncClient() as client:
-                # Simulated balance check
-                # Set specific balances for known wallets
+                # For Uncle Sam, keep the large balance
                 if wallet == self.uncle_sam_wallet:
                     balance = 1000000000  # $1B for Uncle Sam
-                elif wallet == "0xfarmerted123456789":
-                    balance = 125000  # Farmer Ted's actual balance
-                elif wallet == "0xfarmeralice987654321":
-                    balance = 75000  # Farmer Alice's balance
-                else:
-                    balance = 50000  # Default balance
+                    return {
+                        "wallet": wallet,
+                        "balance": balance,
+                        "currency": "USD",
+                        "available_for_subsidies": 500000000,
+                        "pending_payments": 0,
+                        "last_updated": datetime.now().isoformat()
+                    }
                 
+                # For farmer wallets, get REAL balance from Crossmint API
+                user_id = "farmerted" if "farmerted" in wallet else "farmeralice"
+                url = f"https://staging.crossmint.com/api/2025-06-09/wallets/userId:{user_id}:evm/balances"
+                params = {"tokens": "usdc", "chains": "ethereum-sepolia"}
+                
+                response = await client.get(url, params=params, headers=headers)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if isinstance(data, list) and len(data) > 0:
+                        # Get real USDC balance
+                        usdc_balance = float(data[0].get("amount", 0))
+                        return {
+                            "wallet": wallet,
+                            "balance": usdc_balance,  # Real balance from Crossmint
+                            "currency": "USDC",
+                            "available_for_subsidies": 0,
+                            "pending_payments": 0,
+                            "last_updated": datetime.now().isoformat()
+                        }
+                
+                # Fallback if API fails
                 return {
                     "wallet": wallet,
-                    "balance": balance,
-                    "currency": "USD",
-                    "available_for_subsidies": 500000000 if wallet == self.uncle_sam_wallet else 0,
+                    "balance": 0,
+                    "currency": "USDC",
+                    "available_for_subsidies": 0,
                     "pending_payments": 0,
                     "last_updated": datetime.now().isoformat()
                 }
