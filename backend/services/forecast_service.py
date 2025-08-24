@@ -188,5 +188,60 @@ class ForecastService:
         last_price = prices[-1]
         return [last_price + trend * (i + 1) for i in range(horizon_days)]
 
+    async def get_trading_signals(self) -> Dict[str, Any]:
+        """
+        Get trading signals based on forecast analysis
+        """
+        signals = []
+        
+        # Analyze each contract
+        for contract_code in ["NQH25", "NQM25", "NQU25", "NQZ25"]:
+            try:
+                forecast = await self.generate_forecast(contract_code, 7)
+                
+                # Generate signal based on forecast
+                current_price = forecast["current_price"]
+                predicted_prices = forecast["predicted_prices"]
+                
+                if not predicted_prices:
+                    continue
+                
+                # Calculate expected return
+                avg_predicted = sum(p.get("price", current_price) for p in predicted_prices) / len(predicted_prices)
+                expected_return = (avg_predicted - current_price) / current_price
+                
+                # Determine signal strength
+                if expected_return > 0.02:  # 2% expected gain
+                    signal = "BUY"
+                    strength = "STRONG" if expected_return > 0.05 else "MODERATE"
+                elif expected_return < -0.02:  # 2% expected loss
+                    signal = "SELL"
+                    strength = "STRONG" if expected_return < -0.05 else "MODERATE"
+                else:
+                    signal = "HOLD"
+                    strength = "WEAK"
+                
+                signals.append({
+                    "contract_code": contract_code,
+                    "signal": signal,
+                    "strength": strength,
+                    "expected_return": expected_return,
+                    "current_price": current_price,
+                    "target_price": avg_predicted,
+                    "confidence": forecast.get("model_confidence", 0.75),
+                    "reasoning": f"Based on {forecast.get('model_confidence', 0.75)*100:.0f}% confidence forecast"
+                })
+                
+            except Exception as e:
+                # Skip contracts with errors
+                continue
+        
+        return {
+            "signals": signals,
+            "total_signals": len(signals),
+            "generated_at": datetime.now().isoformat(),
+            "analysis_period": "7 days"
+        }
+
 # Singleton instance
 forecast_service = ForecastService()

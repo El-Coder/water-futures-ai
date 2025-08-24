@@ -43,7 +43,8 @@ class ForecastController:
         end_date: datetime
     ):
         return await self.ml_service.backtest_strategy(
-            contract_code,
-            start_date,
-            end_date
+            strategy_name="default",
+            contract_code=contract_code,
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d")
         )

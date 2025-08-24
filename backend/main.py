@@ -119,7 +119,7 @@ async def agent_execute(request: ChatRequest):
         result = await farmer_agent.process_request(
             message=request.message,
             mode="agent",
-            context=request.context
+            context=request.context or {}
         )
         return result
     except Exception as e:

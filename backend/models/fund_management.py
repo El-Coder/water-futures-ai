@@ -116,7 +116,7 @@ class AccountBalance(BaseModel):
             if not fund.can_use_for_trading()
         )
     
-    def add_subsidy(self, subsidy_type: str, amount: float, restrictions: List[str] = None) -> EarmarkedFund:
+    def add_subsidy(self, subsidy_type: str, amount: float, restrictions: Optional[List[str]] = None) -> EarmarkedFund:
         """Add a subsidy with appropriate earmarking"""
         fund_source_map = {
             "drought_relief": FundSource.DROUGHT_RELIEF,
@@ -139,10 +139,10 @@ class AccountBalance(BaseModel):
             source=fund_source_map.get(subsidy_type, FundSource.SUBSIDY_FEDERAL),
             amount=amount,
             available_amount=amount,
-            restrictions=restrictions or default_restrictions.get(subsidy_type, [FundRestriction.NO_TRADING]),
+            restrictions=restrictions or default_restrictions.get(subsidy_type, [FundRestriction.NO_TRADING]) or [],
             purpose=f"{subsidy_type.replace('_', ' ').title()} Subsidy",
             requires_reporting=True,
-            reporting_deadline=datetime.now().replace(month=12, day=31),
+            reporting_deadline=datetime.now().replace(month=12, day=31, year=datetime.now().year),
             documentation_required=[
                 "Proof of usage",
                 "Receipts",

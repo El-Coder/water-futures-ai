@@ -26,7 +26,7 @@ class WaterFuturesController:
             end_date = datetime.now()
         
         return await self.service.get_historical_data(
-            contract_code, start_date, end_date, interval
+            contract_code, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
         )
     
     async def list_available_contracts(self):

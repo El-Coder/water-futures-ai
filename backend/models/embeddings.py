@@ -1,5 +1,9 @@
 from sqlalchemy import Column, String, Float, DateTime, Integer, JSON, ARRAY
-from sqlalchemy.dialects.postgresql import VECTOR
+try:
+    from sqlalchemy.dialects.postgresql import VECTOR
+except ImportError:
+    # Fallback for environments without pgvector
+    VECTOR = String
 from .base import BaseModel
 from datetime import datetime
 

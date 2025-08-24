@@ -166,7 +166,10 @@ async def _get_eth_balance(wallet_address: str) -> float:
         
         # Call Crossmint API to get USDC balance
         url = f"https://staging.crossmint.com/api/2025-06-09/wallets/userId:{user_id}:evm/balances"
-        headers = {"X-API-KEY": os.getenv("CROSSMINT_API_KEY")}
+        api_key = os.getenv("CROSSMINT_API_KEY")
+        if not api_key:
+            raise ValueError("CROSSMINT_API_KEY not found")
+        headers = {"X-API-KEY": api_key}
         params = {"tokens": "usdc", "chains": "ethereum-sepolia"}
         
         async with httpx.AsyncClient() as client:

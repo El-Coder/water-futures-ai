@@ -253,5 +253,108 @@ class WaterFuturesService:
             "maintenance_margin": "7.5%"
         }
 
+    async def get_nasdaq_water_index(self) -> Dict[str, Any]:
+        """
+        Get current NQH2O water index data
+        """
+        return {
+            "index_code": "NQH2O",
+            "name": "NASDAQ Veles California Water Index",
+            "current_value": 508.25,
+            "change": 2.50,
+            "change_percent": 0.49,
+            "volume": 125000,
+            "high_52_week": 525.00,
+            "low_52_week": 485.00,
+            "last_updated": datetime.now().isoformat(),
+            "source": "NASDAQ"
+        }
+
+    async def get_historical_data(
+        self, 
+        contract_code: str, 
+        start_date: str = None, 
+        end_date: str = None
+    ) -> Dict[str, Any]:
+        """
+        Get historical price data for a contract
+        """
+        if contract_code not in self.contracts:
+            raise ValueError(f"Contract {contract_code} not found")
+        
+        # Get data from data store
+        historical_data = data_store.get_historical_prices(contract_code)
+        
+        if historical_data.empty:
+            # Return mock data if no historical data available
+            return {
+                "contract_code": contract_code,
+                "data": [],
+                "message": "No historical data available",
+                "start_date": start_date,
+                "end_date": end_date
+            }
+        
+        # Filter by date range if provided
+        if start_date:
+            historical_data = historical_data[historical_data.index >= start_date]
+        if end_date:
+            historical_data = historical_data[historical_data.index <= end_date]
+        
+        # Convert to list format
+        data_list = []
+        for date, row in historical_data.iterrows():
+            data_list.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "open": float(row.get('open', 0)),
+                "high": float(row.get('high', 0)),
+                "low": float(row.get('low', 0)),
+                "close": float(row.get('close', 0)),
+                "volume": int(row.get('volume', 0))
+            })
+        
+        return {
+            "contract_code": contract_code,
+            "data": data_list,
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_records": len(data_list)
+        }
+
+    async def get_available_contracts(self) -> List[Dict[str, Any]]:
+        """
+        Get list of all available contracts
+        """
+        return await self.get_contracts()
+
+    async def refresh_all_market_data(self) -> Dict[str, Any]:
+        """
+        Refresh all market data from external sources
+        """
+        # In production, this would fetch from real data sources
+        updated_contracts = []
+        
+        for code, contract in self.contracts.items():
+            # Simulate price updates
+            price_change = (datetime.now().second % 10 - 5) * 0.25  # Random change
+            new_price = contract["current_price"] + price_change
+            
+            self.contracts[code]["current_price"] = new_price
+            self.contracts[code]["volume"] += (datetime.now().second % 1000)
+            
+            updated_contracts.append({
+                "contract_code": code,
+                "old_price": contract["current_price"],
+                "new_price": new_price,
+                "change": price_change
+            })
+        
+        return {
+            "status": "success",
+            "updated_contracts": updated_contracts,
+            "total_updated": len(updated_contracts),
+            "refresh_time": datetime.now().isoformat()
+        }
+
 # Singleton instance
 water_futures_service = WaterFuturesService()

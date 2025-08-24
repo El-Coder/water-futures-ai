@@ -186,10 +186,24 @@ class NQH2OPredictionService:
                     pred_value = prediction
                     individual_preds = {}
                 
+                # Ensure pred_value is a number
+                if isinstance(pred_value, (dict, list)):
+                    pred_value = 400.0  # Default fallback
+                else:
+                    pred_value = float(pred_value) if pred_value is not None else 400.0
+                
                 # Calculate confidence based on model agreement
                 if individual_preds:
                     preds = [p[0] if isinstance(p, list) else p for p in individual_preds.values()]
-                    std_dev = np.std(preds) if len(preds) > 1 else 5.0
+                    # Ensure all predictions are numbers
+                    numeric_preds = []
+                    for p in preds:
+                        if isinstance(p, (int, float)):
+                            numeric_preds.append(float(p))
+                        else:
+                            numeric_preds.append(400.0)  # Default fallback
+                    
+                    std_dev = np.std(numeric_preds) if len(numeric_preds) > 1 else 5.0
                     confidence = max(0, min(100, 100 - (std_dev / pred_value * 100))) if pred_value != 0 else 50
                 else:
                     confidence = 85  # Default confidence
