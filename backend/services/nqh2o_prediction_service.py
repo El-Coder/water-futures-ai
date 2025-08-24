@@ -200,16 +200,20 @@ class NQH2OPredictionService:
                 import os
                 os.unlink(temp_file)
             
-            # Parse response
-            if hasattr(response, 'predictions') and response.predictions:
-                prediction = response.predictions[0]
+            # Parse response - gcloud returns raw predictions as list
+            if response.get('predictions'):
+                prediction = response['predictions'][0]
                 
+                # Direct numerical prediction from Vertex AI
+                if isinstance(prediction, (int, float)):
+                    pred_value = float(prediction)
+                    individual_preds = {}
                 # Handle different response formats
-                if isinstance(prediction, dict):
+                elif isinstance(prediction, dict):
                     pred_value = prediction.get('predictions', [prediction])[0] if 'predictions' in prediction else prediction
                     individual_preds = prediction.get('individual_predictions', {})
                 else:
-                    pred_value = prediction
+                    pred_value = float(prediction) if prediction else 400.0
                     individual_preds = {}
                 
                 # Ensure pred_value is a number
