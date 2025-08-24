@@ -50,11 +50,11 @@ async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
             },
             "subsidyAccounts": {
                 "drought_relief": {
-                    "balance": available_subsidies,
-                    "available": available_subsidies,
+                    "balance": eth_balance,  # This IS the subsidy - Ethereum balance from Crossmint
+                    "available": eth_balance,
                     "pending": 0,
                     "canUseForTrading": False,
-                    "restrictions": "Can only be used for water-related expenses"
+                    "restrictions": "Government subsidy funds via Crossmint"
                 },
                 "water_conservation": {
                     "balance": 0,
@@ -63,8 +63,8 @@ async def get_farmer_balance(farmer_id: str) -> Dict[str, Any]:
                     "canUseForTrading": False,
                     "restrictions": "Must be used for conservation equipment"
                 },
-                "totalSubsidies": available_subsidies,
-                "totalAvailable": available_subsidies,
+                "totalSubsidies": eth_balance,  # The ETH balance IS the subsidy
+                "totalAvailable": eth_balance,
                 "cannotUseMessage": "Government subsidies cannot be used for speculative trading"
             },
             "ethBalance": {
@@ -190,15 +190,22 @@ async def get_farmer_transactions(farmer_id: str) -> list:
         return []
 
 async def _get_available_subsidies(farmer_id: str) -> int:
-    """Helper function to get available subsidies for a farmer"""
+    """Helper function to get available subsidies for a farmer from Crossmint"""
     try:
-        eligibility = await crossmint_service.check_eligibility(
-            farmer_id=farmer_id,
-            drought_severity=4,  # Would be dynamic based on actual conditions
-            location="California"
-        )
-        return eligibility.get("total_available", 0)
-    except:
+        # Get actual subsidy balance from Crossmint wallet
+        # This should query the actual Crossmint wallet balance for subsidies
+        # For Farmer Ted, check his actual Crossmint wallet for subsidy funds
+        
+        # Get the farmer's wallet
+        wallet_address = FARMER_WALLETS.get(farmer_id)
+        if not wallet_address:
+            return 0
+            
+        # TODO: Call Crossmint API to get actual subsidy balance
+        # For now, return 0 instead of hardcoded values
+        return 0
+    except Exception as e:
+        print(f"Error getting subsidies: {e}")
         return 0
 
 async def _get_eth_balance(wallet_address: str) -> float:
