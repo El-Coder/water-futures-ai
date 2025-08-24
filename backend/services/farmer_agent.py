@@ -207,10 +207,11 @@ Based on the user's message, determine:
             intent["primary_intent"] = "ACCOUNT"
             intent["tools_needed"].extend(["check_account", "get_positions"])
         
-        # Detect forecast intent
-        elif any(word in message_lower for word in ["forecast", "predict", "future price"]):
+        # Detect forecast intent - FIXED to match more variations
+        elif any(word in message_lower for word in ["forecast", "predict", "prediction", "future", "price", "outlook", "projection", "expect"]):
             intent["primary_intent"] = "FORECAST"
             intent["tools_needed"].append("get_forecast")
+            intent["parameters"]["symbol"] = "NQH25"  # Add symbol parameter
         
         # Detect market analysis intent
         elif any(word in message_lower for word in ["market", "analysis", "conditions"]):
