@@ -231,6 +231,27 @@ Based on the user's message, determine:
         Generate response in safe mode (no execution)
         """
         try:
+            # Check if Anthropic client is initialized
+            if not self.anthropic:
+                # Use fallback response without Claude
+                fallback_responses = {
+                    "TRADE": "I can help you understand water futures trading. The current price for NQH25 contracts is $508. To execute actual trades, you'll need to enable Agent Mode.",
+                    "SUBSIDY": "There's a $15,000 drought relief subsidy available through Crossmint. To process the claim, you'll need to enable Agent Mode.",
+                    "ACCOUNT": "I can help you understand your portfolio. To see real account details, please enable Agent Mode.",
+                    "FORECAST": "Based on current drought conditions (severity 4/5), water futures prices are likely to increase. Enable Agent Mode for detailed forecasts.",
+                    "GENERAL_CONVERSATION": "I'm here to help with your farming and water management needs. What would you like to know?",
+                    "UNKNOWN": "I'm here to help with water futures trading, subsidies, and farming strategies. What can I assist you with today?"
+                }
+                
+                return {
+                    "response": fallback_responses.get(
+                        intent.get("primary_intent", "UNKNOWN"),
+                        "I'm here to help with your farming and water management needs. What would you like to know?"
+                    ),
+                    "mode": "chat",
+                    "intent": intent
+                }
+            
             # Build conversation history for better context
             conversation_context = []
             if len(self.conversation_history) > 1:
