@@ -4,6 +4,7 @@ Alpaca MCP Client - Connects to Alpaca MCP Server for trading
 import httpx
 import json
 from typing import Dict, Any, Optional, List
+from datetime import datetime
 import os
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
@@ -137,6 +138,38 @@ class AlpacaMCPClient:
         except Exception as e:
             print(f"Positions error: {e}")
             # Return empty array instead of dummy positions
+            return []
+    
+    async def get_orders(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Get orders from Alpaca
+        """
+        try:
+            if self.trading_client:
+                from alpaca.trading.requests import GetOrdersRequest
+                from alpaca.trading.enums import QueryOrderStatus
+                
+                # Create request with optional status filter
+                request = GetOrdersRequest(status=status) if status else GetOrdersRequest()
+                orders = self.trading_client.get_orders(request)
+                
+                # Format orders for response
+                formatted_orders = []
+                for order in orders:
+                    formatted_orders.append({
+                        "id": getattr(order, 'id', ''),
+                        "symbol": getattr(order, 'symbol', ''),
+                        "qty": getattr(order, 'qty', 0),
+                        "side": getattr(order, 'side', ''),
+                        "status": getattr(order, 'status', ''),
+                        "created_at": str(getattr(order, 'created_at', '')),
+                        "filled_qty": getattr(order, 'filled_qty', 0),
+                        "filled_avg_price": getattr(order, 'filled_avg_price', None)
+                    })
+                return formatted_orders
+            return []
+        except Exception as e:
+            print(f"Error getting orders: {e}")
             return []
     
     async def get_market_quote(self, symbol: str) -> Dict[str, Any]:

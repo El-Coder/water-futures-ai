@@ -18,6 +18,17 @@ class CrossmintService:
         if not self.uncle_sam_wallet:
             print("⚠️ Uncle Sam wallet address not found in environment variables")
     
+    async def get_transaction_history(self, wallet_address: str) -> list:
+        """
+        Get transaction history for a wallet from Crossmint
+        """
+        try:
+            # Return empty list for now - Crossmint transaction history implementation pending
+            return []
+        except Exception as e:
+            print(f"Error getting transaction history: {e}")
+            return []
+    
     async def process_subsidy_payment(
         self, 
         farmer_wallet: str,
